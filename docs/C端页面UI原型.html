@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C端页面 UI 原型</title>
+<style>
+  :root{
+    --red:#FF2442; --red-bg:#FFECEC; --red-soft:#FFF5F5;
+    --title:#1A1A1A; --text:#333333; --sub:#999999; --weak:#C8C8C8;
+    --bg:#F8F8F8; --line:#F0F0F0; --gray:#F5F5F5;
+    --gold1:#E8C97A; --gold2:#C9A24B; --gold-deep:#A8791A;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:#E8E8E8;color:var(--text);padding:44px 24px 90px;}
+  .head{text-align:center;margin-bottom:6px;font-size:28px;color:var(--title);font-weight:700;letter-spacing:1px;}
+  .subhead{text-align:center;margin-bottom:46px;font-size:13px;color:#999;}
+  .subhead b{color:var(--red);}
+  .gallery{display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-start;max-width:1720px;margin:0 auto;}
+  .frame{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .frame > .tag{font-size:13px;color:#666;font-weight:600;background:#fff;padding:5px 16px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+
+  .phone{width:375px;height:780px;background:#fff;border-radius:44px;border:11px solid #1a1a1a;box-shadow:0 18px 50px rgba(0,0,0,.2);position:relative;overflow:hidden;}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:130px;height:28px;background:#1a1a1a;border-radius:0 0 18px 18px;z-index:60;}
+  .sb{height:40px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 5px;font-size:13px;font-weight:600;color:var(--title);position:relative;z-index:40;background:#fff;}
+  .sb .r{letter-spacing:1px;font-size:11px;}
+  .screen{height:calc(100% - 40px);overflow-y:auto;position:relative;background:var(--bg);}
+  .screen::-webkit-scrollbar{width:0;}
+
+  .img{position:relative;overflow:hidden;background:#eee;}
+  .img .em{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:38px;opacity:.42;}
+  .c1{background:linear-gradient(135deg,#F5EDE4,#EAD9C5);}
+  .c2{background:linear-gradient(135deg,#F7E9EC,#EFD5DC);}
+  .c3{background:linear-gradient(135deg,#EAF0E6,#D6E5CE);}
+  .c4{background:linear-gradient(135deg,#E6EEF2,#CFE0E8);}
+  .c5{background:linear-gradient(135deg,#EFEAF2,#DED5E6);}
+  .c6{background:linear-gradient(135deg,#F5F0E2,#E8DFC4);}
+  .c7{background:linear-gradient(135deg,#FCEEE8,#F6D9CC);}
+
+  .price{color:var(--red);font-weight:700;}
+  .price .s{font-size:.62em;font-weight:700;margin-right:1px;}
+  .qtag{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;margin-left:6px;vertical-align:middle;line-height:14px;}
+  /* 商品卡图片右上角券标 */
+  .img-q{position:absolute;right:6px;top:6px;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;line-height:14px;z-index:2;}
+
+  .btn{border:none;border-radius:999px;font-weight:600;cursor:pointer;font-size:15px;}
+  .btn-red{background:var(--red);color:#fff;}
+  .btn-soft{background:var(--gray);color:var(--text);}
+  .btn-redsoft{background:var(--red-bg);color:var(--red);}
+
+  /* 首页顶部：Logo + 品牌名 */
+  .topbar{height:48px;display:flex;align-items:center;gap:9px;padding:0 16px;background:#fff;}
+  .logo{width:28px;height:28px;border-radius:9px;background:var(--red);color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brand{font-size:17px;font-weight:600;color:var(--title);}
+
+  .nav{height:48px;display:flex;align-items:center;padding:0 14px;background:#fff;position:relative;}
+  .nav .back{font-size:22px;color:var(--title);line-height:1;}
+  .nav .ctitle{position:absolute;left:50%;transform:translateX(-50%);font-size:16px;font-weight:600;color:var(--title);}
+  .nav .right{margin-left:auto;font-size:13px;color:#333;}
+
+  .sec{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;}
+  .sec h3{font-size:16px;font-weight:600;color:var(--title);}
+  .sec .more{font-size:13px;color:var(--sub);}
+  .gap{height:8px;background:var(--bg);}
+  .white{background:#fff;}
+
+  /* Banner 纯图 */
+  .banner{padding:10px 12px;background:#fff;}
+  .banner .b{height:150px;border-radius:16px;position:relative;overflow:hidden;}
+  .banner .dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;align-items:center;}
+  .banner .dots i{width:5px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);}
+  .banner .dots i.on{width:14px;height:3px;background:#fff;border-radius:2px;}
+
+  .coupon{margin:10px 12px 0;background:linear-gradient(135deg,#FFF5F5,#FFECEC);border-radius:12px;display:flex;align-items:center;gap:10px;padding:11px 12px;}
+  .coupon .q{width:22px;height:22px;border-radius:6px;background:var(--red);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .coupon .get{font-size:12px;color:var(--red);flex-shrink:0;}
+
+  .cats{display:flex;justify-content:space-between;padding:6px 16px 16px;background:#fff;}
+  .cat{display:flex;flex-direction:column;align-items:center;gap:7px;}
+  .cat .cc{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .cat span{font-size:11px;color:#333;}
+
+  .hot-wrap{background:#fff;padding-bottom:14px;}
+  .hscroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px 2px;}
+  .hscroll::-webkit-scrollbar{height:0;}
+  .hot{width:130px;flex-shrink:0;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .hot .img{width:130px;height:130px;}
+  .hot .ht{position:absolute;left:0;top:0;background:var(--red);color:#fff;font-size:9px;padding:2px 7px;border-radius:0 0 8px 0;}
+  .hot .info{padding:10px;}
+  .hot .nm{font-size:13px;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
+  .hot .price{font-size:18px;}
+  .hot .hpr{display:flex;align-items:center;justify-content:space-between;}
+  .hot .sold{font-size:10px;color:var(--sub);flex-shrink:0;}
+
+  /* 首页精选推荐：左右图文卡（图左信息右，高屏效） */
+  .rec{background:#fff;border-radius:16px;margin:0 12px 12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.04);display:flex;}
+  .rec .img{width:120px;height:120px;flex-shrink:0;border-radius:12px;margin:10px 0 10px 10px;}
+  .rec .info{padding:12px 14px;flex:1;display:flex;flex-direction:column;min-width:0;}
+  .rec .nm{font-size:15px;font-weight:600;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rec .desc{font-size:13px;color:#666;line-height:19px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .rec .foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:10px;}
+  .rec .foot .price{font-size:17px;}
+  .rec .foot .sold{font-size:11px;color:var(--sub);}
+
+  /* 新人券弹窗 */
+  .popup{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:55;}
+  .popup .card{width:280px;background:#fff;border-radius:20px;overflow:hidden;text-align:center;position:relative;}
+  .popup .ptop{background:linear-gradient(135deg,#FF2442,#FF8A3D);padding:26px 20px 22px;color:#fff;}
+  .popup .ptop .t1{font-size:16px;font-weight:600;}
+  .popup .ptop .t2{font-size:42px;font-weight:800;margin-top:8px;line-height:1;}
+  .popup .ptop .t2 small{font-size:18px;font-weight:700;}
+  .popup .ptop .t3{font-size:12px;margin-top:8px;opacity:.95;}
+  .popup .pbody{padding:18px;}
+  .popup .pbody .d{font-size:13px;color:#666;}
+  .popup .pbody .btn{margin-top:16px;width:100%;height:44px;}
+  .popup .close{position:absolute;bottom:-44px;left:50%;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;}
+
+  /* 筛选栏 */
+  .filters{display:flex;gap:22px;padding:10px 16px;overflow-x:auto;background:#fff;}
+  .filters::-webkit-scrollbar{height:0;}
+  .filters .f{font-size:13px;color:var(--sub);white-space:nowrap;position:relative;padding-bottom:6px;}
+  .filters .f.on{color:var(--title);font-size:14px;font-weight:600;}
+  .filters .f.on::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:16px;height:3px;background:var(--red);border-radius:2px;}
+
+  /* 瀑布流（商品列表） */
+  .waterfall{padding:10px 8px;column-count:2;column-gap:8px;}
+  .wf{break-inside:avoid;margin-bottom:8px;background:#fff;border-radius:16px;overflow:hidden;display:inline-block;width:100%;box-shadow:0 1px 6px rgba(0,0,0,.04);}
+  .wf .img{width:100%;}
+  .wf .info{padding:10px;}
+  .wf .nm{font-size:13px;color:var(--title);line-height:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:7px;}
+  .wf .pr{display:flex;align-items:center;justify-content:space-between;}
+  .wf .price{font-size:15px;}
+  .wf .sold{font-size:11px;color:var(--sub);}
+
+  /* 详情页 */
+  .dnav{position:absolute;top:40px;left:0;right:0;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:30;}
+  .dnav .cb{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;color:#222;font-size:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .dmain{width:100%;height:375px;position:relative;}
+  .dmain .em{font-size:72px;}
+  .dmain .cnt{position:absolute;right:12px;bottom:14px;background:rgba(0,0,0,.4);color:#fff;font-size:11px;padding:3px 9px;border-radius:999px;}
+  .dprice{background:#fff;padding:16px;}
+  .dprice .row{display:flex;align-items:center;justify-content:space-between;}
+  .dprice .now{color:var(--red);font-weight:700;font-size:28px;}
+  .dprice .now .s{font-size:14px;}
+  .dprice .ptag{background:var(--red-bg);color:var(--red);font-size:10px;padding:3px 8px;border-radius:6px;}
+  .vprice{display:inline-block;color:var(--gold-deep);font-size:11px;font-weight:600;margin-top:8px;background:linear-gradient(135deg,#FBF3DF,#F3E2B8);padding:3px 9px;border-radius:6px;}
+  .dprice .nm{font-size:17px;font-weight:600;color:var(--title);line-height:24px;margin-top:10px;}
+  .dprice .sold{font-size:12px;color:var(--sub);margin-top:6px;}
+  .dcoupon{margin:12px 16px 0;background:var(--red-soft);border-radius:10px;display:flex;align-items:center;gap:8px;padding:10px 12px;}
+  .dcoupon .q{width:18px;height:18px;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:5px;display:flex;align-items:center;justify-content:center;}
+  .dcoupon .t{flex:1;font-size:13px;color:var(--text);}
+  .dcoupon .g{font-size:13px;color:var(--red);}
+  .dblock{background:#fff;padding:16px;}
+  .dblock h4{font-size:15px;font-weight:600;color:var(--title);margin-bottom:12px;}
+  .specs{display:flex;gap:10px;}
+  .spec{background:var(--gray);color:var(--text);font-size:13px;padding:8px 16px;border-radius:8px;}
+  .spec.on{background:var(--red-bg);color:var(--red);border:1px solid var(--red);}
+  .qty{display:flex;align-items:center;justify-content:space-between;}
+  .qty .l{font-size:15px;color:var(--title);}
+  .step{display:flex;align-items:center;gap:12px;}
+  .step button{width:28px;height:28px;border-radius:50%;background:var(--gray);border:none;font-size:16px;color:#333;cursor:pointer;}
+  .step .n{font-size:15px;min-width:18px;text-align:center;color:var(--title);}
+  .hls{display:flex;justify-content:space-around;}
+  .hl{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .hl .hi{width:44px;height:44px;border-radius:14px;background:#FAFAFA;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .hl span{font-size:11px;color:#666;}
+  .dbar{position:absolute;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;align-items:center;padding:0 12px;gap:8px;box-shadow:0 -1px 10px rgba(0,0,0,.05);z-index:20;}
+  .dbar .ico{display:flex;flex-direction:column;align-items:center;gap:2px;width:48px;font-size:10px;color:var(--sub);}
+  .dbar .ico .e{font-size:18px;}
+  .dbar .btn{flex:1;height:40px;}
+
+  /* 购物车 */
+  .cart-list{padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+  .citem{background:#fff;border-radius:16px;padding:12px;display:flex;gap:10px;position:relative;}
+  .ck{width:18px;height:18px;border-radius:50%;border:1.5px solid #E0E0E0;flex-shrink:0;display:flex;align-items:center;justify-content:center;align-self:center;color:#fff;font-size:11px;}
+  .ck.on{background:var(--red);border-color:var(--red);}
+  .citem .img{width:76px;height:76px;border-radius:12px;flex-shrink:0;}
+  .citem .info{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .citem .nm{font-size:13px;color:var(--title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .citem .st{font-size:11px;color:var(--sub);background:var(--gray);padding:2px 8px;border-radius:6px;align-self:flex-start;margin-top:5px;}
+  .citem .bot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;}
+  .citem .bot .price{font-size:16px;}
+  .citem .step button{width:22px;height:22px;font-size:14px;}
+  .citem .step .n{font-size:13px;}
+  .cartbar{position:absolute;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;align-items:center;padding:0 14px;gap:8px;box-shadow:0 -1px 10px rgba(0,0,0,.05);}
+  .cartbar .all{display:flex;align-items:center;gap:6px;font-size:13px;color:#666;}
+  .cartbar .tot{margin-left:auto;text-align:right;}
+  .cartbar .tot .big{font-size:13px;color:#333;}
+  .cartbar .tot .big b{color:var(--red);font-size:18px;}
+  .cartbar .tot .sm{font-size:10px;color:var(--sub);}
+  .cartbar .btn{height:40px;padding:0 24px;}
+
+  /* 通用卡片/订单 */
+  .card{background:#fff;border-radius:16px;margin:10px 12px 0;padding:16px;}
+  .addr{display:flex;align-items:center;gap:12px;}
+  .addr .pin{color:var(--red);font-size:18px;}
+  .addr .ai{flex:1;}
+  .addr .l1{font-size:15px;color:var(--title);}
+  .addr .l1 b{font-weight:600;margin-right:10px;}
+  .addr .l2{font-size:13px;color:var(--sub);margin-top:5px;}
+  .addr .ar{color:var(--weak);font-size:18px;}
+  .oitem{display:flex;gap:10px;align-items:center;}
+  .oitem .img{width:64px;height:64px;border-radius:12px;flex-shrink:0;}
+  .oitem .info{flex:1;}
+  .oitem .nm{font-size:13px;color:var(--title);}
+  .oitem .st{font-size:11px;color:var(--sub);background:var(--gray);padding:2px 8px;border-radius:6px;display:inline-block;margin-top:5px;}
+  .oitem .rt{text-align:right;}
+  .oitem .rt .price{font-size:13px;}
+  .oitem .rt .q{font-size:12px;color:var(--sub);margin-top:4px;}
+  .line{height:1px;background:var(--line);margin:12px 0;}
+  .frow{display:flex;align-items:center;justify-content:space-between;font-size:14px;}
+  .frow + .frow{margin-top:12px;}
+  .frow .lab{color:var(--sub);}
+  .frow .lab.dark{color:var(--title);}
+  .frow .val{color:var(--title);}
+  .frow .val.red{color:var(--red);}
+  .frow .val.gold{color:var(--gold2);}
+  .toggle{width:40px;height:22px;border-radius:999px;background:var(--red);position:relative;flex-shrink:0;}
+  .toggle i{position:absolute;top:2px;right:2px;width:18px;height:18px;background:#fff;border-radius:50%;}
+  .note{width:100%;background:#FAFAFA;border:none;border-radius:8px;padding:10px;font-size:13px;color:#333;margin-top:10px;}
+  .note::placeholder{color:var(--weak);}
+  .subbar{position:absolute;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;align-items:center;padding:0 14px;box-shadow:0 -1px 10px rgba(0,0,0,.05);}
+  .subbar .tot{font-size:13px;color:#333;}
+  .subbar .tot b{color:var(--red);font-size:20px;}
+  .subbar .tot .sm{font-size:10px;color:var(--sub);}
+  .subbar .btn{margin-left:auto;height:42px;padding:0 30px;font-size:16px;}
+
+  /* 支付结果 */
+  .pay{display:flex;flex-direction:column;align-items:center;padding:80px 0 40px;background:#fff;height:100%;}
+  .pay .icon{width:56px;height:56px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;box-shadow:0 0 0 8px rgba(255,36,66,.08);}
+  .pay .t{font-size:18px;font-weight:600;color:var(--title);margin-top:14px;}
+  .pay .amt{font-size:26px;font-weight:700;color:var(--title);margin-top:8px;}
+  .pay .save{font-size:12px;color:var(--red);margin-top:8px;background:var(--red-bg);padding:4px 12px;border-radius:999px;}
+  .pay .pts{font-size:12px;color:var(--gold-deep);margin-top:12px;background:linear-gradient(135deg,#FBF3DF,#F3E2B8);padding:5px 14px;border-radius:999px;}
+  .pay .btns{display:flex;gap:12px;margin-top:32px;}
+  .pay .btns .btn{width:130px;height:40px;}
+
+  /* 订单详情 */
+  .ostatus{background:#fff;padding:18px 16px;display:flex;align-items:center;}
+  .ostatus .l{flex:1;}
+  .ostatus .s{font-size:18px;font-weight:600;color:var(--title);}
+  .ostatus .d{font-size:12px;color:var(--sub);margin-top:5px;}
+  .ostatus .ill{font-size:36px;opacity:.8;}
+  .pts-bar{background:linear-gradient(135deg,#FBF3DF,#F3E2B8);color:var(--gold-deep);font-size:12px;font-weight:500;padding:8px 16px;}
+  /* 物流时间轴 */
+  .tlcard{background:#fff;border-radius:16px;margin:10px 12px 0;padding:16px;}
+  .tlcard .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .tlcard .h .t{font-size:15px;font-weight:600;color:var(--title);}
+  .tlcard .h .more{font-size:12px;color:var(--sub);}
+  .timeline{position:relative;}
+  .tl{display:flex;gap:12px;position:relative;padding-bottom:16px;}
+  .tl:last-child{padding-bottom:0;}
+  .tl .dot{width:9px;height:9px;border-radius:50%;background:#D8D8D8;margin-top:4px;flex-shrink:0;position:relative;z-index:2;}
+  .tl.on .dot{background:var(--red);box-shadow:0 0 0 3px rgba(255,36,66,.15);}
+  .tl .ln{position:absolute;left:4px;top:13px;bottom:0;width:1px;background:#EEE;}
+  .tl:last-child .ln{display:none;}
+  .tl .c .desc{font-size:13px;color:var(--sub);}
+  .tl.on .c .desc{color:var(--title);font-weight:600;}
+  .tl .c .time{font-size:11px;color:var(--weak);margin-top:3px;}
+  .totalrow{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;}
+  .totalrow .val{color:var(--red);font-size:17px;font-weight:700;}
+  .irow{display:flex;justify-content:space-between;font-size:13px;}
+  .irow + .irow{margin-top:12px;}
+  .irow .lab{color:var(--sub);}
+  .irow .val{color:#333;}
+  .irow .copy{color:var(--red);font-size:11px;margin-left:6px;}
+  .odbar{position:absolute;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 14px;box-shadow:0 -1px 10px rgba(0,0,0,.05);}
+  .odbar .btn{height:36px;padding:0 20px;font-size:14px;}
+
+  /* 个人中心：会员头部卡 */
+  .mhead{background:linear-gradient(135deg,var(--gold1),var(--gold2));border-radius:16px;margin:12px;padding:18px;color:#fff;box-shadow:0 6px 16px rgba(201,162,75,.25);}
+  .mhead .row1{display:flex;align-items:center;gap:14px;}
+  .mhead .av{width:56px;height:56px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--gold2);background:#fff;flex-shrink:0;}
+  .mhead .ui{flex:1;}
+  .mhead .name{font-size:18px;font-weight:600;display:flex;align-items:center;}
+  .mhead .mbadge{background:rgba(255,255,255,.28);font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;margin-left:8px;}
+  .mhead .edit{font-size:12px;opacity:.9;margin-top:5px;}
+  .mhead .view{font-size:12px;opacity:.95;}
+  .mhead .prog{height:5px;background:rgba(255,255,255,.32);border-radius:999px;margin:14px 0 6px;overflow:hidden;}
+  .mhead .prog i{display:block;height:100%;width:60%;background:#fff;border-radius:999px;}
+  .mhead .ptxt{font-size:11px;opacity:.95;}
+  .mhead .rights{display:flex;gap:8px;margin-top:11px;}
+  .mhead .r{background:rgba(255,255,255,.25);font-size:11px;padding:3px 10px;border-radius:999px;}
+  .assets{display:flex;background:#fff;border-radius:16px;margin:0 12px;}
+  .asset{flex:1;text-align:center;padding:16px 0;}
+  .asset + .asset{border-left:1px solid var(--line);}
+  .asset .num{font-size:22px;font-weight:700;color:var(--title);}
+  .asset .lab{font-size:12px;color:var(--sub);margin-top:3px;}
+  .myorder{background:#fff;border-radius:16px;margin:10px 12px 0;padding:0 0 16px;}
+  .ordericons{display:flex;justify-content:space-around;padding-top:14px;}
+  .oi{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
+  .oi .e{font-size:23px;}
+  .oi span{font-size:11px;color:#666;}
+  .oi .dot{position:absolute;top:-3px;right:4px;width:8px;height:8px;background:var(--red);border-radius:50%;}
+  .menu{background:#fff;border-radius:16px;margin:10px 12px 0;overflow:hidden;}
+  .mrow{display:flex;align-items:center;gap:12px;padding:0 16px;height:48px;font-size:14px;color:var(--title);}
+  .mrow + .mrow{border-top:1px solid var(--line);}
+  .mrow .e{font-size:18px;width:22px;text-align:center;}
+  .mrow .a{margin-left:auto;color:var(--weak);}
+
+  /* 个人中心：最近订单预览 */
+  .recent{border-top:1px solid var(--line);margin:14px 16px 0;padding-top:2px;}
+  .ro{display:flex;align-items:center;gap:10px;padding:11px 0;}
+  .ro + .ro{border-top:1px solid var(--line);}
+  .ro .img{width:48px;height:48px;border-radius:8px;flex-shrink:0;}
+  .ro .img .cnt2{position:absolute;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff;font-size:9px;padding:1px 4px;border-radius:6px 0 6px 0;}
+  .ro .ri{flex:1;min-width:0;}
+  .ro .nm{font-size:13px;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ro .stt{font-size:11px;color:var(--sub);margin-top:4px;}
+  .ro .pr{font-size:14px;font-weight:700;color:var(--red);flex-shrink:0;}
+  .ro .pr .s{font-size:.62em;font-weight:700;}
+
+  /* 订单列表页 */
+  .otabs{display:flex;gap:20px;padding:10px 16px;overflow-x:auto;background:#fff;}
+  .otabs::-webkit-scrollbar{height:0;}
+  .otabs .t{font-size:13px;color:var(--sub);white-space:nowrap;position:relative;padding-bottom:6px;}
+  .otabs .t.on{color:var(--title);font-size:14px;font-weight:600;}
+  .otabs .t.on::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:16px;height:3px;background:var(--red);border-radius:2px;}
+  .ocard{background:#fff;border-radius:16px;margin:8px 12px 0;padding:14px;}
+  .ocard .ohead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .ocard .ohead .ono{font-size:12px;color:var(--sub);}
+  .ocard .ohead .ost{font-size:13px;}
+  .ocard .ohead .ost.red{color:var(--red);}
+  .ocard .ohead .ost.dark{color:var(--title);}
+  .ocard .ohead .ost.gray{color:var(--sub);}
+  .ocard .opay{text-align:right;font-size:13px;color:#333;margin-top:6px;}
+  .ocard .opay b{color:var(--red);font-size:15px;}
+  .ocard .oact{display:flex;justify-content:flex-end;gap:10px;margin-top:12px;}
+  .ocard .oact .btn{height:32px;padding:0 16px;font-size:13px;}
+
+  /* 我的优惠券页 */
+  .cpcard{display:flex;margin:10px 12px 0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.05);position:relative;min-height:90px;}
+  .cpcard .amt{width:104px;flex-shrink:0;background:linear-gradient(135deg,#FF6B7E,#FF2442);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+  .cpcard .amt b{font-size:24px;font-weight:800;line-height:1;}
+  .cpcard .amt b .s{font-size:.55em;font-weight:700;margin-right:1px;}
+  .cpcard .amt span{font-size:10px;opacity:.95;}
+  .cpcard .ci{flex:1;padding:14px 14px 14px 18px;display:flex;flex-direction:column;justify-content:center;position:relative;}
+  .cpcard .ci::before{content:"";position:absolute;left:0;top:10px;bottom:10px;border-left:1px dashed #EAD3D6;}
+  .cpcard .cn{font-size:14px;font-weight:600;color:var(--title);}
+  .cpcard .cd{font-size:11px;color:var(--sub);margin-top:6px;}
+  .cpcard .cuse{position:absolute;right:14px;bottom:14px;background:var(--red);color:#fff;font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;}
+  .cpcard.off{filter:grayscale(1);opacity:.65;}
+  .cpcard.off .cuse{background:none;color:var(--weak);border:1px solid var(--weak);font-weight:400;padding:5px 12px;}
+
+  /* 积分中心页 */
+  .ptnav{position:absolute;top:0;left:0;right:0;height:48px;display:flex;align-items:center;padding:0 14px;z-index:10;}
+  .ptnav .back{font-size:22px;color:#fff;line-height:1;}
+  .ptnav .ct{position:absolute;left:50%;transform:translateX(-50%);font-size:16px;font-weight:600;color:#fff;}
+  .ptnav .rl{margin-left:auto;font-size:12px;color:rgba(255,255,255,.9);}
+  .pthead{background:linear-gradient(135deg,var(--gold1),var(--gold2));padding:54px 0 26px;text-align:center;color:#fff;}
+  .pthead .big{font-size:36px;font-weight:700;line-height:1;}
+  .pthead .sub{font-size:12px;opacity:.95;margin-top:8px;}
+  .pthead .acc{display:inline-block;font-size:11px;margin-top:14px;background:rgba(255,255,255,.22);padding:4px 12px;border-radius:999px;}
+  .ptflow{background:#fff;border-radius:16px;margin:10px 12px 0;padding:2px 16px;}
+  .ptflow .ph{font-size:13px;color:var(--sub);padding:12px 0 2px;}
+  .pf{display:flex;align-items:center;justify-content:space-between;padding:13px 0;}
+  .pf + .pf{border-top:1px solid var(--line);}
+  .pf .pl .t{font-size:14px;color:var(--title);}
+  .pf .pl .tm{font-size:11px;color:var(--sub);margin-top:4px;}
+  .pf .pv{font-size:15px;font-weight:700;}
+  .pf .pv.add{color:var(--red);}
+  .pf .pv.sub{color:var(--sub);}
+
+  .tabbar{position:absolute;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;border-top:1px solid var(--gray);z-index:30;}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
+  .tab span{font-size:10px;color:var(--weak);}
+  .tab.on span{color:var(--title);font-weight:600;}
+  .tab svg{stroke:var(--weak);}
+  .tab.on svg{stroke:var(--title);fill:var(--title);}
+  .tab .badge{position:absolute;top:7px;right:calc(50% - 20px);background:var(--red);color:#fff;font-size:9px;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+  .pb{height:72px;background:var(--bg);}
+</style>
+</head>
+<body>
+  <h1 class="head">C端页面 UI 原型</h1>
+  <p class="subhead">小红书 App 风格 · 品牌红 <b>#FF2442</b> · 与《C端页面设计.md》一致</p>
+  <div class="gallery" id="gallery"></div>
+
+<script>
+const sb=()=>`<div class="sb"><span>9:41</span><span class="r">●●● 5G ▮</span></div>`;
+const notch=()=>`<div class="notch"></div>`;
+
+function tabbar(active){
+  const tabs=[
+    {k:'home',l:'首页',p:'<path d="M3 11l9-8 9 8M5 10v10h14V10" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+    {k:'find',l:'发现',p:'<circle cx="11" cy="11" r="7" fill="none" stroke-width="1.8"/><path d="M21 21l-4-4" stroke-width="1.8" stroke-linecap="round"/>'},
+    {k:'cart',l:'购物车',b:3,p:'<path d="M3 4h2l2.4 12.4a2 2 0 002 1.6h7.7a2 2 0 002-1.6L22 8H6" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="21" r="1.2" stroke-width="1.8"/><circle cx="18" cy="21" r="1.2" stroke-width="1.8"/>'},
+    {k:'me',l:'我的',p:'<circle cx="12" cy="8" r="4" fill="none" stroke-width="1.8"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" fill="none" stroke-width="1.8" stroke-linecap="round"/>'},
+  ];
+  return `<div class="tabbar">${tabs.map(t=>`<div class="tab ${t.k===active?'on':''}">
+    ${t.b?`<span class="badge">${t.b}</span>`:''}
+    <svg width="24" height="24" viewBox="0 0 24 24" stroke="#C8C8C8" fill="none">${t.p}</svg>
+    <span>${t.l}</span></div>`).join('')}</div>`;
+}
+function frame(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}<div class="screen">${inner}</div></div></div>`;}
+function frameFixed(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
+function frameRaw(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
+
+/* 商品列表瀑布流卡片 */
+function wfCard(c,h,nm,price,sold){
+  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span><span class="img-q">券</span></div>
+    <div class="info"><div class="nm">${nm}</div>
+    <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><span class="sold">已售${sold}</span></div></div></div>`;
+}
+
+/* 首页内容（可复用于弹窗背景） */
+function homeInner(){
+  const cats=[['🛍️','潮流'],['☕','饮品'],['🍓','生鲜'],['🏠','家居'],['💄','美妆']];
+  const hot=[['c1','无线蓝牙耳机',88,892],['c2','保温焖烧杯',69,445],['c3','香薰礼盒',128,267]];
+  const rec=[
+    ['c4',200,'北欧风陶瓷餐具套装','编辑精选 · 4人食设计，简约不挑桌，宴客日常都好看',68,328],
+    ['c5',190,'纯棉针织家居服','慵懒舒适不勒身，亲肤透气，春秋居家首选款',129,86],
+    ['c1',200,'天然乳胶枕','人体工学护颈曲线，一觉到天亮，回购率超高',159,203],
+  ];
+  return `
+    <div class="topbar"><div class="logo">K</div><div class="brand">KOALA 优选</div></div>
+    <div class="banner"><div class="b img c7"><span class="em">🛒</span>
+      <div class="dots"><i class="on"></i><i></i><i></i></div></div></div>
+    <div class="cats">${cats.map(c=>`<div class="cat"><div class="cc c${Math.floor(Math.random()*6)+1}">${c[0]}</div><span>${c[1]}</span></div>`).join('')}</div>
+    <div class="gap"></div>
+    <div class="hot-wrap"><div class="sec"><h3>🔥 热销爆款</h3><span class="more">查看全部 ›</span></div>
+      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span><span class="ht">爆款</span><span class="img-q">券</span></div>
+      <div class="info"><div class="nm">${h[1]}</div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><span class="sold">已售${h[3]}</span></div></div></div>`).join('')}</div></div>
+    <div class="gap"></div>
+    <div class="white"><div class="sec"><h3>✨ 为你推荐</h3></div>
+      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span><span class="img-q">券</span></div>
+        <div class="info"><div class="nm">${r[2]}</div><div class="desc">${r[3]}</div>
+        <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><span class="sold">${r[5]} 人已购</span></div></div></div>`).join('')}</div>
+    <div class="pb"></div>`;
+}
+
+/* 1. 首页 */
+function home(){
+  return frameFixed('首页',`<div class="screen">${homeInner()}</div>${tabbar('home')}`);
+}
+
+/* 1b. 新人券弹窗 */
+function popup(){
+  const inner=`<div class="screen">${homeInner()}</div>${tabbar('home')}
+    <div class="popup"><div class="card">
+      <div class="ptop"><div class="t1">🎁 新人专享</div><div class="t2"><small>¥</small>5</div><div class="t3">无门槛券 · 注册好礼</div></div>
+      <div class="pbody"><div class="d">下单立减，仅限新用户领取</div><button class="btn btn-red">立即领取</button></div>
+      <div class="close">✕</div>
+    </div></div>`;
+  return frameRaw('首页 · 新人券弹窗',inner);
+}
+
+/* 2. 商品列表 */
+function list(){
+  const filters=['全部','潮流','饮品','生鲜','家居','美妆','零食'];
+  const wf=[
+    ['c1',180,'无线蓝牙耳机 主动降噪 长续航',88,892],
+    ['c2',150,'大容量保温焖烧杯 316不锈钢',69,445],
+    ['c3',170,'手工香薰蜡烛礼盒装 母亲节',128,267],
+    ['c4',140,'北欧陶瓷餐具4人套装',68,328],
+    ['c5',190,'纯棉针织家居服套装 春秋款',129,612],
+    ['c6',160,'便携折叠收纳箱 车载家用',49,158],
+  ];
+  const inner=`
+    <div class="nav"><span class="back">‹</span><span class="ctitle">家居好物</span></div>
+    <div class="filters">${filters.map((f,i)=>`<span class="f ${i===0?'on':''}">${f}</span>`).join('')}</div>
+    <div class="gap"></div>
+    <div class="waterfall" style="padding-top:8px">${wf.map(w=>wfCard(...w)).join('')}</div>`;
+  return frame('商品列表页',inner);
+}
+
+/* 3. 商品详情 */
+function detail(){
+  const inner=`<div class="screen" style="padding-bottom:60px">
+    <div class="dnav"><div class="cb">‹</div><div class="cb">⤴</div></div>
+    <div class="dmain img c1"><span class="em">🎧</span><span class="cnt">1/5</span></div>
+    <div class="dprice"><div class="row"><span class="now"><span class="s">¥</span>88</span><span class="ptag">券 · 满100减10</span></div>
+      <div class="vprice">🥈 白银会员 ¥86.24</div>
+      <div class="nm">无线蓝牙耳机 主动降噪 长续航 入耳式</div>
+      <div class="sold">已售 2,680</div></div>
+    <div class="dcoupon"><span class="q">券</span><span class="t">满100减10 · 新人券¥5，可叠加使用</span><span class="g">领取</span></div>
+    <div class="gap" style="margin-top:12px"></div>
+    <div class="dblock"><h4>规格</h4><div class="specs"><span class="spec">标准版</span><span class="spec on">尊享版</span></div></div>
+    <div class="dblock" style="border-top:1px solid var(--line)"><div class="qty"><span class="l">购买数量</span>
+      <div class="step"><button>−</button><span class="n">1</span><button>+</button></div></div></div>
+    <div class="gap"></div>
+    <div class="dblock"><h4>产品亮点</h4><div class="hls">
+      <div class="hl"><div class="hi">🔋</div><span>超长续航</span></div>
+      <div class="hl"><div class="hi">🎵</div><span>HiFi音质</span></div>
+      <div class="hl"><div class="hi">💧</div><span>IPX5防水</span></div>
+      <div class="hl"><div class="hi">📦</div><span>顺丰包邮</span></div></div></div>
+    <div class="gap"></div>
+    <div class="dblock"><h4>商品详情</h4><div class="img c3" style="height:170px;border-radius:12px"><span class="em">🖼️</span></div></div>
+  </div>
+  <div class="dbar">
+    <div class="ico"><span class="e">🎧</span>客服</div>
+    <button class="btn btn-redsoft">加入购物车</button><button class="btn btn-red">立即购买</button></div>`;
+  return frameFixed('商品详情页',inner);
+}
+
+/* 4. 购物车 */
+function cart(){
+  const items=[['c1','无线蓝牙耳机 主动降噪','尊享版',88,true],['c2','大容量保温焖烧杯','500ml 米白',69,true],['c4','北欧陶瓷餐具套装','4人食',68,false]];
+  const inner=`<div class="screen" style="padding-bottom:60px">
+    <div class="nav"><span class="ctitle">购物车</span><span class="right">管理</span></div>
+    <div style="padding:0 12px"><div class="coupon"><div class="q">券</div><span style="flex:1;font-size:13px;color:#333">已自动领取新人券¥5 + 满减券¥10，共省 ¥15</span><span class="get">›</span></div></div>
+    <div class="cart-list">${items.map(it=>`<div class="citem"><div class="ck ${it[4]?'on':''}">${it[4]?'✓':''}</div>
+      <div class="img ${it[0]}"><span class="em">📦</span></div>
+      <div class="info"><div class="nm">${it[1]}</div><span class="st">${it[2]}</span>
+      <div class="bot"><span class="price"><span class="s">¥</span>${it[3]}</span>
+      <div class="step"><button>−</button><span class="n">1</span><button>+</button></div></div></div></div>`).join('')}</div>
+  </div>
+  <div class="cartbar"><div class="all"><div class="ck on">✓</div>全选</div>
+    <div class="tot"><div class="big">合计 <b>¥142</b></div><div class="sm">已省 ¥15</div></div>
+    <button class="btn btn-red">结算(2)</button></div>`;
+  return frameFixed('购物车页',inner);
+}
+
+/* 5. 确认订单 */
+function confirm(){
+  const inner=`<div class="screen" style="padding-bottom:60px">
+    <div class="nav"><span class="back">‹</span><span class="ctitle">确认订单</span></div>
+    <div class="card addr"><span class="pin">📍</span><div class="ai"><div class="l1"><b>阿吉</b>138****8888</div>
+      <div class="l2">上海市黄浦区马当路388号 SOHO复兴广场</div></div><span class="ar">›</span></div>
+    <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
+      <div class="info"><div class="nm">无线蓝牙耳机 主动降噪</div><span class="st">尊享版</span></div>
+      <div class="rt"><div class="price"><span class="s">¥</span>88</div><div class="q">x1</div></div></div>
+      <div class="line"></div>
+      <div class="oitem"><div class="img c2"><span class="em">🥤</span></div>
+      <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
+      <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
+    <div class="card"><div class="frow"><span class="lab dark">优惠券</span><span><span class="val red">已抵 -¥15</span> <span class="ar" style="color:var(--weak)">›</span></span></div></div>
+    <div class="card"><div class="frow"><span class="lab dark">积分抵扣<div style="font-size:11px;color:#999;font-weight:400;margin-top:3px">当前 1,286 积分，可抵 ¥5</div></span><div class="toggle"><i></i></div></div></div>
+    <div class="card"><div class="frow"><span class="lab dark">订单备注</span></div><input class="note" placeholder="选填，有什么想备注的"></div>
+    <div class="card"><div class="frow"><span class="lab">商品合计</span><span class="val">¥157.00</span></div>
+      <div class="frow"><span class="lab">会员折扣 (白银9.8折)</span><span class="val gold">-¥3.14</span></div>
+      <div class="frow"><span class="lab">新人券</span><span class="val red">-¥5.00</span></div>
+      <div class="frow"><span class="lab">满减券</span><span class="val red">-¥10.00</span></div>
+      <div class="frow"><span class="lab">积分抵扣</span><span class="val red">-¥5.00</span></div>
+      <div class="frow"><span class="lab">运费</span><span class="val">¥0.00</span></div></div>
+    <div class="pb" style="height:20px"></div>
+  </div>
+  <div class="subbar"><div class="tot">合计 <b>¥133.86</b><div class="sm">已省 ¥23.14</div></div><button class="btn btn-red">提交订单</button></div>`;
+  return frameFixed('确认订单页',inner);
+}
+
+/* 6. 支付结果 */
+function pay(){
+  const inner=`<div class="screen">
+    <div class="pay"><div class="icon">✓</div><div class="t">支付成功</div><div class="amt">¥133.86</div>
+      <div class="save">已为你节省 ¥23.14</div>
+      <div class="pts">🎁 确认收货后可得 161 积分</div>
+      <div class="btns"><button class="btn btn-red">查看订单</button><button class="btn btn-soft">返回首页</button></div></div>
+  </div>`;
+  return frame('支付结果页',inner);
+}
+
+/* 7. 订单详情 */
+function orderDetail(){
+  const logs=[
+    ['运输中：快件已到达【上海浦东转运中心】','06-12 14:30',true],
+    ['快件已从【杭州集散中心】发出','06-12 09:10',false],
+    ['商家已发货，等待揽收','06-11 18:00',false],
+  ];
+  const inner=`<div class="screen" style="padding-bottom:60px">
+    <div class="nav"><span class="back">‹</span><span class="ctitle">订单详情</span></div>
+    <div class="ostatus"><div class="l"><div class="s">配送中</div><div class="d">商品已发出，正在路上</div></div><span class="ill">🚚</span></div>
+    <div class="pts-bar">🎁 确认收货后可得 161 积分</div>
+    <div class="tlcard"><div class="h"><span class="t">物流信息</span><span class="more">收起 ›</span></div>
+      <div class="timeline">${logs.map(l=>`<div class="tl ${l[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
+        <div class="c"><div class="desc">${l[0]}</div><div class="time">${l[1]}</div></div></div>`).join('')}</div></div>
+    <div class="card addr"><span class="pin">📍</span><div class="ai"><div class="l1"><b>阿吉</b>138****8888</div>
+      <div class="l2">上海市黄浦区马当路388号 SOHO复兴广场</div></div></div>
+    <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
+      <div class="info"><div class="nm">无线蓝牙耳机 主动降噪</div><span class="st">尊享版</span></div>
+      <div class="rt"><div class="price"><span class="s">¥</span>88</div><div class="q">x1</div></div></div>
+      <div class="line"></div>
+      <div class="oitem"><div class="img c2"><span class="em">🥤</span></div>
+      <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
+      <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
+    <div class="card"><div class="frow"><span class="lab">商品合计</span><span class="val">¥157.00</span></div>
+      <div class="frow"><span class="lab">会员折扣 (白银9.8折)</span><span class="val gold">-¥3.14</span></div>
+      <div class="frow"><span class="lab">新人券</span><span class="val red">-¥5.00</span></div>
+      <div class="frow"><span class="lab">满减券</span><span class="val red">-¥10.00</span></div>
+      <div class="frow"><span class="lab">积分抵扣</span><span class="val red">-¥5.00</span></div>
+      <div class="frow"><span class="lab">运费</span><span class="val">¥0.00</span></div>
+      <div class="frow totalrow"><span class="lab dark">实付金额</span><span class="val">¥133.86</span></div></div>
+    <div class="card"><div class="irow"><span class="lab">订单编号</span><span class="val">2026061200888<span class="copy">复制</span></span></div>
+      <div class="irow"><span class="lab">下单时间</span><span class="val">2026-06-11 18:00</span></div>
+      <div class="irow"><span class="lab">支付方式</span><span class="val">微信支付</span></div></div>
+    <div class="pb" style="height:20px"></div>
+  </div>
+  <div class="odbar"><button class="btn btn-soft">查看物流</button><button class="btn btn-red">确认收货</button></div>`;
+  return frameFixed('订单详情页',inner);
+}
+
+/* 8. 订单列表 */
+function orderList(){
+  const tabs=['全部','待付款','待发货','待收货','退款售后','已完成'];
+  const orders=[
+    {no:'2026061200888',st:'待付款',stc:'red',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['取消订单','soft'],['去支付','red']]},
+    {no:'2026061100776',st:'待收货',stc:'dark',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'133.86',acts:[['查看物流','soft'],['确认收货','red']]},
+    {no:'2026060800521',st:'交易完成',stc:'gray',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['删除订单','soft'],['再次购买','red']]},
+  ];
+  const inner=`
+    <div class="nav"><span class="back">‹</span><span class="ctitle">我的订单</span></div>
+    <div class="otabs">${tabs.map((t,i)=>`<span class="t ${i===0?'on':''}">${t}</span>`).join('')}</div>
+    <div class="gap"></div>
+    ${orders.map(o=>`<div class="ocard">
+      <div class="ohead"><span class="ono">订单号 ${o.no}</span><span class="ost ${o.stc}">${o.st}</span></div>
+      ${o.items.map(it=>`<div class="oitem" style="margin-bottom:10px"><div class="img ${it[0]}"><span class="em">${it[1]}</span></div>
+        <div class="info"><div class="nm">${it[2]}</div><span class="st">${it[3]}</span></div>
+        <div class="rt"><div class="price"><span class="s">¥</span>${it[4]}</div><div class="q">x1</div></div></div>`).join('')}
+      <div class="opay">共 ${o.items.length} 件，实付 <b>¥${o.pay}</b></div>
+      <div class="oact">${o.acts.map(a=>`<button class="btn btn-${a[1]}">${a[0]}</button>`).join('')}</div>
+    </div>`).join('')}
+    <div class="pb"></div>`;
+  return frame('订单列表页',inner);
+}
+
+/* 9. 个人中心 */
+function profile(){
+  const orders=[['📋','待付款',1],['📦','待发货',0],['🚚','待收货',1],['↩️','退款售后',0],['✅','已完成',0]];
+  const recent=[
+    ['c1','📦','无线蓝牙耳机 主动降噪 尊享版','待付款',88,1],
+    ['c2','🥤','大容量保温焖烧杯 500ml 米白','待收货',69,1],
+    ['c3','🛍️','手工香薰蜡烛礼盒 等2件','交易完成',136,2],
+  ];
+  const menus=[['📍','地址管理'],['💬','联系客服'],['ℹ️','关于我们']];
+  const inner=`<div class="screen" style="padding-bottom:60px">
+    <div class="mhead">
+      <div class="row1"><div class="av">阿</div>
+        <div class="ui"><div class="name">阿吉<span class="mbadge">🥈 白银会员</span></div><div class="edit">编辑资料 ›</div></div>
+        <div class="view">查看权益 ›</div></div>
+      <div class="prog"><i></i></div>
+      <div class="ptxt">再消费 ¥147 升黄金会员</div>
+      <div class="rights"><span class="r">下单 9.8 折</span><span class="r">积分 1.2 倍</span></div></div>
+    <div class="assets"><div class="asset"><div class="num">3</div><div class="lab">优惠券</div></div>
+      <div class="asset"><div class="num">1286</div><div class="lab">积分</div></div></div>
+    <div class="myorder"><div class="sec" style="padding-bottom:0"><h3 style="font-size:15px">我的订单</h3><span class="more">全部 ›</span></div>
+      <div class="ordericons">${orders.map(o=>`<div class="oi">${o[2]?'<span class="dot"></span>':''}<span class="e">${o[0]}</span><span>${o[1]}</span></div>`).join('')}</div>
+      <div class="recent">${recent.map(o=>`<div class="ro"><div class="img ${o[0]}"><span class="em" style="font-size:20px">${o[1]}</span>${o[5]>1?`<span class="cnt2">共${o[5]}件</span>`:''}</div>
+        <div class="ri"><div class="nm">${o[2]}</div><div class="stt">${o[3]}</div></div>
+        <div class="pr"><span class="s">¥</span>${o[4]}</div></div>`).join('')}</div></div>
+    <div class="menu">${menus.map(m=>`<div class="mrow"><span class="e">${m[0]}</span>${m[1]}<span class="a">›</span></div>`).join('')}</div>
+    <div class="pb"></div>
+  </div>${tabbar('me')}`;
+  return frameFixed('个人中心页',inner);
+}
+
+/* 10. 我的优惠券 */
+function couponPage(){
+  const tabs=['可用 3','已使用','已过期'];
+  const cps=[
+    ['5','无门槛','新人专享券','有效期至 2026.06.30',false],
+    ['10','满100可用','满减优惠券','有效期至 2026.06.20',false],
+    ['20','满200可用','会员尊享券','有效期至 2026.07.15',false],
+    ['8','满80可用','美妆品类券','使用于 2026.05.30',true],
+  ];
+  const inner=`
+    <div class="nav"><span class="back">‹</span><span class="ctitle">我的优惠券</span></div>
+    <div class="otabs">${tabs.map((t,i)=>`<span class="t ${i===0?'on':''}">${t}</span>`).join('')}</div>
+    <div class="gap"></div>
+    ${cps.map(c=>`<div class="cpcard ${c[4]?'off':''}">
+      <div class="amt"><b><span class="s">¥</span>${c[0]}</b><span>${c[1]}</span></div>
+      <div class="ci"><div class="cn">${c[2]}</div><div class="cd">${c[3]}</div>
+        <span class="cuse">${c[4]?'已使用':'去使用'}</span></div>
+    </div>`).join('')}
+    <div class="pb"></div>`;
+  return frame('我的优惠券页',inner);
+}
+
+/* 11. 积分中心 */
+function pointsPage(){
+  const flows=[
+    ['下单获得 · 订单 20260612','2026-06-12 18:00','+161','add'],
+    ['确认收货奖励','2026-06-10 10:20','+50','add'],
+    ['积分抵扣 · 订单 20260608','2026-06-08 14:30','-500','sub'],
+    ['下单获得 · 订单 20260605','2026-06-05 09:15','+88','add'],
+    ['新人注册奖励','2026-05-28 12:00','+100','add'],
+  ];
+  const inner=`<div class="screen">
+    <div class="ptnav"><span class="back">‹</span><span class="ct">积分中心</span><span class="rl">规则 ›</span></div>
+    <div class="pthead"><div class="big">1,286</div><div class="sub">当前可抵 ¥12.86</div>
+      <div class="acc">🥈 白银会员积分 1.2 倍加速中</div></div>
+    <div class="otabs" style="border-radius:16px 16px 0 0;margin-top:-2px"><span class="t on">全部</span><span class="t">获取</span><span class="t">使用</span></div>
+    <div class="ptflow"><div class="ph">积分明细</div>
+      ${flows.map(f=>`<div class="pf"><div class="pl"><div class="t">${f[0]}</div><div class="tm">${f[1]}</div></div>
+        <div class="pv ${f[3]}">${f[2]}</div></div>`).join('')}</div>
+    <div class="pb"></div>
+  </div>`;
+  return frameFixed('积分中心页',inner);
+}
+
+document.getElementById('gallery').innerHTML=[
+  home(),popup(),list(),detail(),cart(),confirm(),pay(),orderList(),orderDetail(),profile(),couponPage(),pointsPage()
+].join('');
+</script>
+</body>
+</html>
