@@ -42,6 +42,12 @@
   .qtag{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;margin-left:6px;vertical-align:middle;line-height:14px;}
   /* 商品卡图片右上角券标 */
   .img-q{position:absolute;right:6px;top:6px;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;line-height:14px;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.18);}
+  /* 商品卡优惠标签行（标题下、价格上，按类型配色） */
+  .ctags{display:flex;flex-wrap:nowrap;gap:3px;margin:5px 0;overflow:hidden;}
+  .ctag{font-size:9px;line-height:13px;padding:1px 4px;border-radius:3px;white-space:nowrap;flex-shrink:0;}
+  .ctag.red{background:#FFECEC;color:#FF2442;}
+  .ctag.orange{background:#FFF3E8;color:#FA8C16;}
+  .ctag.gold{background:#FBF3DF;color:#C9A24B;}
 
   .btn{border:none;border-radius:999px;font-weight:600;cursor:pointer;font-size:15px;}
   .btn-red{background:var(--red);color:#fff;}
@@ -407,10 +413,18 @@ function frame(tag,inner){return `<div class="frame"><div class="tag">${tag}</di
 function frameFixed(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
 function frameRaw(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
 
+/* 优惠标签：按优先级(满减>无门槛>会员)取前 max 个整标签，多余不展示 */
+const ALL_CTAGS=[{t:'full',label:'满100减10'},{t:'noth',label:'新人立减5'},{t:'member',label:'会员9.8折'}];
+function ctagsHtml(tags,max){
+  const order={full:0,noth:1,member:2},cls={full:'red',noth:'orange',member:'gold'};
+  return `<div class="ctags">${[...tags].sort((a,b)=>order[a.t]-order[b.t]).slice(0,max).map(x=>`<span class="ctag ${cls[x.t]}">${x.label}</span>`).join('')}</div>`;
+}
+
 /* 商品列表瀑布流卡片 */
 function wfCard(c,h,nm,price,sold){
-  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span><span class="img-q">满100减10</span></div>
+  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span></div>
     <div class="info"><div class="nm">${nm}</div>
+    <div class="ctags"><span class="ctag red">满100减10</span><span class="ctag gold">会员9.8折</span></div>
     <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><span class="sold">已售${sold}</span></div></div></div>`;
 }
 
@@ -430,12 +444,13 @@ function homeInner(){
     <div class="cats">${cats.map(c=>`<div class="cat"><div class="cc c${Math.floor(Math.random()*6)+1}">${c[0]}</div><span>${c[1]}</span></div>`).join('')}</div>
     <div class="gap"></div>
     <div class="hot-wrap"><div class="sec"><h3>🔥 热销爆款</h3><span class="more">查看全部 ›</span></div>
-      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span><span class="ht">爆款</span><span class="img-q">满100减10</span></div>
-      <div class="info"><div class="nm">${h[1]}</div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><span class="sold">已售${h[3]}</span></div></div></div>`).join('')}</div></div>
+      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span><span class="ht">爆款</span></div>
+      <div class="info"><div class="nm">${h[1]}</div><div class="ctags"><span class="ctag red">满100减10</span><span class="ctag gold">会员9.8折</span></div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><span class="sold">已售${h[3]}</span></div></div></div>`).join('')}</div></div>
     <div class="gap"></div>
     <div class="white"><div class="sec"><h3>✨ 为你推荐</h3></div>
-      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span><span class="img-q">满100减10</span></div>
+      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span></div>
         <div class="info"><div class="nm">${r[2]}</div><div class="desc">${r[3]}</div>
+        <div class="ctags"><span class="ctag red">满100减10</span><span class="ctag orange">新人立减5</span><span class="ctag gold">会员9.8折</span></div>
         <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><span class="sold">已售${r[5]}</span></div></div></div>`).join('')}</div>
     <div class="pb"></div>`;
 }
