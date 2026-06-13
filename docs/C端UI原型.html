@@ -505,7 +505,8 @@ function cart(){
   const items=[['c1','无线蓝牙耳机 主动降噪','尊享版',88,true],['c2','大容量保温焖烧杯','500ml 米白',69,true],['c4','北欧陶瓷餐具套装','4人食',68,false]];
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="nav"><span class="ctitle">购物车</span><span class="right">管理</span></div>
-    <div style="padding:0 12px"><div class="coupon"><div class="q">券</div><span style="flex:1;font-size:13px;color:#333">已自动领取新人券¥5 + 满减券¥10，共省 ¥15</span><span class="get">›</span></div></div>
+    <div style="padding:0 12px"><div class="coupon" style="flex-wrap:wrap"><div class="q">券</div><span style="flex:1;font-size:13px;color:#333">已自动领取新人券¥5 + 满减券¥10，共省 ¥15</span><span class="get">›</span>
+      <div style="width:100%;font-size:12px;color:var(--red);padding-top:8px;margin-top:8px;border-top:1px dashed #FFD6D6">🛒 再凑 ¥80 可用满200减30券，多省 ¥20 ›</div></div></div>
     <div class="cart-list">${items.map(it=>`<div class="citem"><div class="ck ${it[4]?'on':''}">${it[4]?'✓':''}</div>
       <div class="img ${it[0]}"><span class="em">📦</span></div>
       <div class="info"><div class="nm">${it[1]}</div><span class="st">${it[2]}</span>
@@ -640,8 +641,8 @@ function orderList(){
   const tabs=['全部','待付款','待发货','待收货','退款售后','已完成'];
   const orders=[
     {no:'2026061200888',st:'待付款',stc:'red',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['取消订单','soft'],['去支付','red']]},
-    {no:'2026061100776',st:'待收货',stc:'dark',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'133.86',acts:[['查看物流','soft'],['确认收货','red']]},
-    {no:'2026060800521',st:'交易完成',stc:'gray',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['删除订单','soft'],['再次购买','red']]},
+    {no:'2026061100776',st:'待收货',stc:'dark',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'133.86',acts:[['申请退货退款','soft'],['查看物流','soft'],['确认收货','red']]},
+    {no:'2026060800521',st:'交易完成',stc:'gray',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['申请售后','soft'],['删除订单','soft'],['再次购买','red']]},
   ];
   const inner=`
     <div class="nav"><span class="back">‹</span><span class="ctitle">我的订单</span></div>
@@ -680,7 +681,7 @@ function profile(){
       <div class="ordericons">${orders.map(o=>`<div class="oi">${o[2]?'<span class="dot"></span>':''}<span class="e">${o[0]}</span><span>${o[1]}</span></div>`).join('')}</div>
       <div class="recent">${recent.map(o=>`<div class="ro"><div class="img ${o[0]}"><span class="em" style="font-size:20px">${o[1]}</span>${o[5]>1?`<span class="cnt2">共${o[5]}件</span>`:''}</div>
         <div class="ri"><div class="nm">${o[2]}</div><div class="stt">${o[3]}</div></div>
-        <div class="pr"><span class="s">¥</span>${o[4]}</div></div>`).join('')}</div></div>
+        <div class="pr"><span class="s">¥</span>${o[4]}</div><span style="color:#C8C8C8;font-size:16px;margin-left:8px">›</span></div>`).join('')}</div></div>
     <div class="menu">${menus.map(m=>`<div class="mrow"><span class="e">${m[0]}</span>${m[1]}<span class="a">›</span></div>`).join('')}</div>
     <div class="pb"></div>
   </div>${tabbar('me')}`;
@@ -691,7 +692,7 @@ function profile(){
 function couponPage(){
   const tabs=['可用 3','已使用','已过期'];
   const cps=[
-    ['5','无门槛','新人专享券','有效期至 2026.06.30',false],
+    ['5','无门槛','新人专享券','有效期至 2026.06.14',false,'仅剩 5时30分'],
     ['10','满100可用','满减优惠券','有效期至 2026.06.20',false],
     ['20','满200可用','会员尊享券','有效期至 2026.07.15',false],
     ['8','满80可用','美妆品类券','使用于 2026.05.30',true],
@@ -702,7 +703,7 @@ function couponPage(){
     <div class="gap"></div>
     ${cps.map(c=>`<div class="cpcard ${c[4]?'off':''}">
       <div class="amt"><b><span class="s">¥</span>${c[0]}</b><span>${c[1]}</span></div>
-      <div class="ci"><div class="cn">${c[2]}</div><div class="cd">${c[3]}</div>
+      <div class="ci"><div class="cn">${c[2]}</div><div class="cd">${c[3]}${c[5]?` <span style="color:var(--red);font-weight:600">· ${c[5]}</span>`:''}</div>
         <span class="cuse">${c[4]?'已使用':'去使用'}</span></div>
     </div>`).join('')}
     <div class="pb"></div>`;
