@@ -41,7 +41,7 @@
   .price .s{font-size:.62em;font-weight:700;margin-right:1px;}
   .qtag{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;margin-left:6px;vertical-align:middle;line-height:14px;}
   /* 商品卡图片右上角券标 */
-  .img-q{position:absolute;right:6px;top:6px;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;line-height:14px;z-index:2;}
+  .img-q{position:absolute;right:6px;top:6px;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;line-height:14px;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.18);}
 
   .btn{border:none;border-radius:999px;font-weight:600;cursor:pointer;font-size:15px;}
   .btn-red{background:var(--red);color:#fff;}
@@ -85,7 +85,7 @@
   .hscroll::-webkit-scrollbar{height:0;}
   .hot{width:130px;flex-shrink:0;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);}
   .hot .img{width:130px;height:130px;}
-  .hot .ht{position:absolute;left:0;top:0;background:var(--red);color:#fff;font-size:9px;padding:2px 7px;border-radius:0 0 8px 0;}
+  .hot .ht{position:absolute;left:6px;top:6px;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;line-height:14px;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.18);}
   .hot .info{padding:10px;}
   .hot .nm{font-size:13px;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
   .hot .price{font-size:18px;}
@@ -247,6 +247,13 @@
   .tlcard .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
   .tlcard .h .t{font-size:15px;font-weight:600;color:var(--title);}
   .tlcard .h .more{font-size:12px;color:var(--sub);}
+  /* 查看物流弹窗 */
+  .logipop{position:absolute;inset:0;z-index:50;}
+  .logimask{position:absolute;inset:0;background:rgba(0,0,0,.45);}
+  .logicard{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:16px 16px 24px;max-height:72%;overflow-y:auto;}
+  .logihead{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;color:var(--title);margin-bottom:14px;}
+  .logico{font-size:13px;color:#333;background:#FAFAFA;border-radius:8px;padding:10px 12px;margin-bottom:16px;}
+  .logico .copy{color:var(--red);margin-left:6px;font-size:11px;}
   .timeline{position:relative;}
   .tl{display:flex;gap:12px;position:relative;padding-bottom:16px;}
   .tl:last-child{padding-bottom:0;}
@@ -398,7 +405,7 @@ function frameRaw(tag,inner){return `<div class="frame"><div class="tag">${tag}<
 
 /* 商品列表瀑布流卡片 */
 function wfCard(c,h,nm,price,sold){
-  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span><span class="img-q">券</span></div>
+  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span><span class="img-q">满100减10</span></div>
     <div class="info"><div class="nm">${nm}</div>
     <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><span class="sold">已售${sold}</span></div></div></div>`;
 }
@@ -419,13 +426,13 @@ function homeInner(){
     <div class="cats">${cats.map(c=>`<div class="cat"><div class="cc c${Math.floor(Math.random()*6)+1}">${c[0]}</div><span>${c[1]}</span></div>`).join('')}</div>
     <div class="gap"></div>
     <div class="hot-wrap"><div class="sec"><h3>🔥 热销爆款</h3><span class="more">查看全部 ›</span></div>
-      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span><span class="ht">爆款</span><span class="img-q">券</span></div>
+      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span><span class="ht">爆款</span><span class="img-q">满100减10</span></div>
       <div class="info"><div class="nm">${h[1]}</div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><span class="sold">已售${h[3]}</span></div></div></div>`).join('')}</div></div>
     <div class="gap"></div>
     <div class="white"><div class="sec"><h3>✨ 为你推荐</h3></div>
-      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span><span class="img-q">券</span></div>
+      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span><span class="img-q">满100减10</span></div>
         <div class="info"><div class="nm">${r[2]}</div><div class="desc">${r[3]}</div>
-        <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><span class="sold">${r[5]} 人已购</span></div></div></div>`).join('')}</div>
+        <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><span class="sold">已售${r[5]}</span></div></div></div>`).join('')}</div>
     <div class="pb"></div>`;
 }
 
@@ -559,11 +566,8 @@ function orderDetail(){
   ];
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="nav"><span class="back">‹</span><span class="ctitle">订单详情</span></div>
-    <div class="ostatus"><div class="l"><div class="s">配送中</div><div class="d">商品已发出，正在路上</div></div><span class="ill">🚚</span></div>
+    <div class="ostatus" onclick="openLogi()" style="cursor:pointer"><div class="l"><div class="s">配送中</div><div class="d">最新：快件已到达【上海浦东转运中心】 ›</div></div><span class="ill">🚚</span></div>
     <div class="pts-bar">🎁 确认收货后可得 161 积分</div>
-    <div class="tlcard"><div class="h"><span class="t">物流信息</span><span class="more">收起 ›</span></div>
-      <div class="timeline">${logs.map(l=>`<div class="tl ${l[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
-        <div class="c"><div class="desc">${l[0]}</div><div class="time">${l[1]}</div></div></div>`).join('')}</div></div>
     <div class="card addr"><span class="pin">📍</span><div class="ai"><div class="l1"><b>阿吉</b>138****8888</div>
       <div class="l2">上海市黄浦区马当路388号 SOHO复兴广场</div></div></div>
     <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
@@ -585,8 +589,50 @@ function orderDetail(){
       <div class="irow"><span class="lab">支付方式</span><span class="val">微信支付</span></div></div>
     <div class="pb" style="height:20px"></div>
   </div>
-  <div class="odbar"><button class="btn btn-soft">查看物流</button><button class="btn btn-red">确认收货</button></div>`;
+  <div class="odbar"><button class="btn btn-soft" onclick="openLogi()">查看物流</button><button class="btn btn-red">确认收货</button></div>
+  <div class="logipop" id="logiPop" style="display:none">
+    <div class="logimask" onclick="closeLogi()"></div>
+    <div class="logicard">
+      <div class="logihead"><span>物流信息</span><span onclick="closeLogi()" style="cursor:pointer;color:#999;font-weight:400">✕</span></div>
+      <div class="logico">圆通速递 · 运单号 YT2026061200888 <span class="copy">复制</span></div>
+      <div class="timeline">${logs.map(l=>`<div class="tl ${l[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
+        <div class="c"><div class="desc">${l[0]}</div><div class="time">${l[1]}</div></div></div>`).join('')}</div>
+    </div>
+  </div>`;
   return frameFixed('订单详情页',inner);
+}
+function openLogi(){var p=document.getElementById('logiPop');if(p)p.style.display='block';}
+function closeLogi(){var p=document.getElementById('logiPop');if(p)p.style.display='none';}
+
+/* 7b. 订单详情·售后进度（退货退款） */
+function orderAfterSale(){
+  const steps=[
+    ['提交退款申请','06-12 10:00',true],
+    ['商家审核通过','06-12 11:30',true],
+    ['买家寄回 · 待填写寄回单号','进行中',true],
+    ['商家确认收货','待处理',false],
+    ['退款完成 · 原路退回 ¥133.86','待退款',false],
+  ];
+  const inner=`<div class="screen" style="padding-bottom:60px">
+    <div class="nav"><span class="back">‹</span><span class="ctitle">退款/售后</span></div>
+    <div class="ostatus"><div class="l"><div class="s">退款处理中</div><div class="d">请尽快寄回商品并填写快递单号</div></div><span class="ill">↩️</span></div>
+    <div class="tlcard"><div class="h"><span class="t">售后进度</span><span class="more">退货退款</span></div>
+      <div class="timeline">${steps.map(s=>`<div class="tl ${s[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
+        <div class="c"><div class="desc">${s[0]}</div><div class="time">${s[1]}</div></div></div>`).join('')}</div></div>
+    <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
+      <div class="info"><div class="nm">无线蓝牙耳机 主动降噪</div><span class="st">尊享版</span></div>
+      <div class="rt"><div class="price"><span class="s">¥</span>88</div><div class="q">x1</div></div></div>
+      <div class="line"></div>
+      <div class="oitem"><div class="img c2"><span class="em">🥤</span></div>
+      <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
+      <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
+    <div class="card"><div class="frow"><span class="lab">退款金额</span><span class="val red">¥133.86</span></div>
+      <div class="frow"><span class="lab">退款方式</span><span class="val">原路退回 + 积分/券返还</span></div>
+      <div class="frow"><span class="lab">申请单号</span><span class="val">RF2026061200888<span class="copy">复制</span></span></div></div>
+    <div class="pb" style="height:20px"></div>
+  </div>
+  <div class="odbar"><button class="btn btn-soft">联系客服</button><button class="btn btn-red">填写寄回单号</button></div>`;
+  return frameFixed('订单详情·售后进度',inner);
 }
 
 /* 8. 订单列表 */
@@ -618,8 +664,6 @@ function profile(){
   const orders=[['📋','待付款',1],['📦','待发货',0],['🚚','待收货',1],['↩️','退款售后',0],['✅','已完成',0]];
   const recent=[
     ['c1','📦','无线蓝牙耳机 主动降噪 尊享版','待付款',88,1],
-    ['c2','🥤','大容量保温焖烧杯 500ml 米白','待收货',69,1],
-    ['c3','🛍️','手工香薰蜡烛礼盒 等2件','交易完成',136,2],
   ];
   const menus=[['📍','地址管理'],['💬','联系客服'],['ℹ️','关于我们']];
   const inner=`<div class="screen" style="padding-bottom:60px">
@@ -688,7 +732,7 @@ function pointsPage(){
 }
 
 document.getElementById('gallery').innerHTML=[
-  home(),popup(),list(),detail(),cart(),confirm(),pay(),orderList(),orderDetail(),profile(),couponPage(),pointsPage()
+  home(),popup(),list(),detail(),cart(),confirm(),pay(),orderList(),orderDetail(),orderAfterSale(),profile(),couponPage(),pointsPage()
 ].join('');
 </script>
 </body>

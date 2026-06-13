@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOALA 管理后台 · UI 原型</title>
+<style>
+  :root{
+    --blue:#1677FF; --blue-bg:#E6F0FF; --dark:#1A2332;
+    --green:#52C41A; --yellow:#FAAD14; --red:#FF4D4F;
+    --t1:#262626; --t2:#595959; --t3:#8C8C8C; --t4:#BFBFBF;
+    --bg:#F0F2F5; --line:#F0F0F0; --thead:#FAFAFA;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--t2);font-size:14px;}
+
+  /* 顶栏 */
+  .topbar{position:fixed;top:0;left:0;right:0;height:56px;background:var(--dark);display:flex;align-items:center;padding:0 20px;z-index:100;color:#fff;}
+  .topbar .fold{font-size:18px;cursor:pointer;margin-right:14px;opacity:.85;}
+  .topbar .logo{width:30px;height:30px;border-radius:7px;background:var(--blue);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;margin-right:10px;}
+  .topbar .ttl{font-size:16px;font-weight:600;}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:20px;}
+  .topbar .bell{position:relative;cursor:pointer;font-size:16px;}
+  .topbar .bell i{position:absolute;top:-3px;right:-4px;width:7px;height:7px;background:var(--red);border-radius:50%;}
+  .topbar .adm{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;}
+  .topbar .adm .av{width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;}
+
+  /* 侧栏 */
+  .sidebar{position:fixed;top:56px;left:0;bottom:0;width:220px;background:#fff;border-right:1px solid var(--line);overflow-y:auto;z-index:90;}
+  .sidebar::-webkit-scrollbar{width:6px;} .sidebar::-webkit-scrollbar-thumb{background:#E0E0E0;border-radius:3px;}
+  .menu-group{font-size:12px;color:var(--t4);padding:14px 20px 6px;}
+  .menu-item{display:flex;align-items:center;gap:10px;height:44px;padding:0 20px;cursor:pointer;color:var(--t2);font-size:14px;position:relative;}
+  .menu-item .ic{width:18px;text-align:center;}
+  .menu-item.sub{padding-left:34px;font-size:13px;}
+  .menu-item:hover{background:#FAFAFA;}
+  .menu-item.on{background:var(--blue-bg);color:var(--blue);font-weight:600;}
+  .menu-item.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue);}
+  .menu-divider{height:1px;background:var(--line);margin:8px 16px;}
+  .ver{font-size:12px;color:var(--t4);padding:14px 20px;}
+
+  /* 主区 */
+  .main{margin-left:220px;margin-top:56px;padding:20px 24px 40px;min-height:calc(100vh - 56px);}
+  .crumb{font-size:13px;color:var(--t3);margin-bottom:16px;}
+  .crumb b{color:var(--t2);font-weight:400;}
+  .page-title{font-size:20px;font-weight:600;color:var(--t1);}
+
+  .card{background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);padding:20px;margin-bottom:16px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .card-head h3{font-size:16px;font-weight:600;color:var(--t1);}
+
+  /* 按钮 */
+  .btn{height:32px;padding:0 15px;border-radius:6px;font-size:14px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:4px;}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{background:#3b8aff;}
+  .btn-default{background:#fff;border-color:#D9D9D9;color:var(--t2);}
+  .btn-default:hover{border-color:var(--blue);color:var(--blue);}
+  .btn-danger{background:#fff;border-color:#FFCCC7;color:var(--red);}
+  .link{color:var(--blue);cursor:pointer;}
+  .link:hover{opacity:.8;}
+  .link.danger{color:var(--red);}
+  .link.muted{color:var(--t3);}
+
+  /* 工具栏 */
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .input,.select{height:32px;border:1px solid #D9D9D9;border-radius:6px;padding:0 11px;font-size:14px;color:var(--t2);background:#fff;}
+  .input{width:200px;}
+  .input::placeholder{color:var(--t4);}
+  .select{cursor:pointer;}
+  .toolbar .right{margin-left:auto;display:flex;gap:10px;align-items:center;}
+  .count{color:var(--t3);font-size:13px;}
+
+  /* 表格 */
+  table{width:100%;border-collapse:collapse;}
+  thead th{background:var(--thead);text-align:left;font-weight:500;font-size:14px;color:var(--t2);padding:12px 12px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  tbody td{padding:12px 12px;border-bottom:1px solid var(--line);font-size:14px;color:var(--t2);}
+  tbody tr:hover{background:#FAFAFA;}
+  .pimg{width:44px;height:44px;border-radius:6px;background:linear-gradient(135deg,#E6F0FF,#D4E4FF);display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .price{color:var(--red);font-weight:600;}
+
+  /* 标签 */
+  .tag{display:inline-block;padding:0 8px;border-radius:4px;font-size:12px;line-height:20px;}
+  .tag.green{color:var(--green);background:#F6FFED;border:1px solid #B7EB8F;}
+  .tag.red{color:var(--red);background:#FFF1F0;border:1px solid #FFCCC7;}
+  .tag.gray{color:var(--t3);background:#FAFAFA;border:1px solid #D9D9D9;}
+  .tag.yellow{color:var(--yellow);background:#FFFBE6;border:1px solid #FFE58F;}
+  .tag.blue{color:var(--blue);background:var(--blue-bg);border:1px solid #91CAFF;}
+  .tag.gold{color:#A8791A;background:#FBF3DF;border:1px solid #E8C97A;}
+
+  /* 分页 */
+  .pager{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:16px;}
+  .pager .pg{min-width:32px;height:32px;border:1px solid #D9D9D9;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;background:#fff;}
+  .pager .pg.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+  /* 指标卡 */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;}
+  .stat{background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);padding:20px;}
+  .stat .lab{font-size:14px;color:var(--t3);}
+  .stat .num{font-size:32px;font-weight:700;color:var(--t1);margin:8px 0;line-height:1;}
+  .stat .chg{font-size:12px;}
+  .stat .chg.up{color:var(--green);} .stat .chg.down{color:var(--red);}
+
+  /* Tabs */
+  .tabs{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-bottom:18px;}
+  .tabs .tab{padding:10px 2px;font-size:14px;color:var(--t2);cursor:pointer;position:relative;}
+  .tabs .tab.on{color:var(--blue);font-weight:600;}
+  .tabs .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--blue);}
+  .tabs .tab .badge{color:var(--t3);font-size:12px;}
+
+  /* 柱状图占位 */
+  .chart{display:flex;align-items:flex-end;gap:16px;height:200px;padding:10px 0;}
+  .chart .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;}
+  .chart .bar .b{width:60%;background:linear-gradient(180deg,#1677FF,#69A9FF);border-radius:4px 4px 0 0;}
+  .chart .bar .x{font-size:12px;color:var(--t3);}
+
+  /* 优惠券卡片 */
+  .coupons{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .cpc{border:1px solid var(--line);border-radius:8px;padding:16px;position:relative;}
+  .cpc .cn{font-size:16px;font-weight:600;color:var(--t1);}
+  .cpc .row{font-size:13px;color:var(--t3);margin-top:8px;}
+  .cpc .data{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);font-size:13px;color:var(--t2);}
+  .cpc .acts{margin-top:14px;display:flex;gap:14px;}
+  .cpc .st{position:absolute;right:16px;top:16px;font-size:12px;}
+
+  /* 表单 */
+  .form-row{display:flex;align-items:center;margin-bottom:18px;}
+  .form-row .lab{width:110px;text-align:right;color:var(--t2);padding-right:16px;flex-shrink:0;}
+  .form-row .ctl{flex:1;}
+  .form-row .ctl .input{width:320px;}
+  .uploader{width:88px;height:88px;border:1px dashed #D9D9D9;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);font-size:12px;gap:4px;cursor:pointer;background:#FAFAFA;}
+  .textarea{width:420px;height:90px;border:1px solid #D9D9D9;border-radius:6px;padding:8px 11px;font-size:14px;font-family:inherit;resize:none;}
+  .group-title{font-size:16px;font-weight:600;color:var(--t1);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .form-foot{text-align:right;padding-top:8px;border-top:1px solid var(--line);margin-top:8px;}
+  .form-foot .btn{margin-left:10px;}
+  .toggle{display:inline-flex;width:44px;height:24px;border-radius:999px;background:var(--green);position:relative;cursor:pointer;}
+  .toggle i{position:absolute;top:2px;right:2px;width:20px;height:20px;background:#fff;border-radius:50%;}
+
+  /* 运维状态卡 */
+  .ops-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;}
+  .ops-stat{border:1px solid var(--line);border-radius:8px;padding:16px;}
+  .ops-stat .t{font-size:13px;color:var(--t3);}
+  .ops-stat .v{font-size:15px;font-weight:600;color:var(--t1);margin-top:8px;display:flex;align-items:center;gap:6px;}
+  .ops-stat .v .dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
+  .ops-stat .sub{font-size:12px;color:var(--t3);margin-top:4px;}
+  .sqlbox{width:100%;height:80px;border:1px solid #D9D9D9;border-radius:6px;padding:10px;font-family:monospace;font-size:13px;resize:none;background:#FAFAFA;}
+  .order-detail{background:#FAFAFA;font-size:13px;color:var(--t2);line-height:1.9;}
+  .order-detail td{padding:12px 16px;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="fold">≡</span>
+    <span class="logo">K</span>
+    <span class="ttl">KOALA 管理后台</span>
+    <div class="right">
+      <span class="bell">🔔<i></i></span>
+      <span class="adm"><span class="av">管</span>管理员 ▾</span>
+    </div>
+  </div>
+
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main" id="main"></div>
+
+<script>
+/* ---------- 菜单 ---------- */
+const MENU=[
+  {k:'dashboard',ic:'📊',l:'数据看板'},
+  {group:'商品管理'},
+  {k:'products',ic:'📦',l:'商品列表',sub:true},
+  {k:'categories',ic:'🗂️',l:'分类管理',sub:true},
+  {k:'orders',ic:'📋',l:'订单管理'},
+  {k:'users',ic:'👥',l:'用户管理'},
+  {k:'coupons',ic:'🎟️',l:'优惠券管理'},
+  {group:'内容管理'},
+  {k:'banners',ic:'🖼️',l:'Banner 管理',sub:true},
+  {k:'brand',ic:'🏷️',l:'品牌信息',sub:true},
+  {k:'settings',ic:'⚙️',l:'系统设置'},
+  {divider:true},
+  {k:'ops',ic:'🛠️',l:'运维管理'},
+];
+const CRUMB={
+  dashboard:'数据看板', products:'商品管理 / 商品列表', categories:'商品管理 / 分类管理',
+  orders:'订单管理', users:'用户管理', coupons:'优惠券管理',
+  banners:'内容管理 / Banner 管理', brand:'内容管理 / 品牌信息',
+  settings:'系统设置', ops:'运维管理'
+};
+let current='dashboard';
+
+function renderMenu(){
+  document.getElementById('sidebar').innerHTML=MENU.map(m=>{
+    if(m.group)return `<div class="menu-group">${m.group}</div>`;
+    if(m.divider)return `<div class="menu-divider"></div>`;
+    return `<div class="menu-item ${m.sub?'sub':''} ${m.k===current?'on':''}" onclick="nav('${m.k}')">
+      ${m.sub?'':`<span class="ic">${m.ic}</span>`}<span>${m.l}</span></div>`;
+  }).join('')+`<div class="ver">v1.0.0</div>`;
+}
+function nav(k){current=k;renderMenu();
+  document.getElementById('main').innerHTML=`<div class="crumb">首页 / <b>${CRUMB[k]}</b></div>`+PAGES[k]();
+}
+
+/* ---------- 通用 ---------- */
+function pager(total){return `<div class="pager"><span class="pg">‹</span><span class="pg on">1</span><span class="pg">2</span><span class="pg">3</span><span class="pg">›</span><span class="count" style="margin-left:8px">共 ${total} 页</span></div>`;}
+
+/* ---------- 页面 ---------- */
+const PAGES={};
+
+PAGES.dashboard=()=>{
+  const bars=[['周一',60],['周二',85],['周三',70],['周四',95],['周五',120],['周六',150],['周日',110]];
+  const max=160;
+  return `
+  <div class="card-head"><h2 class="page-title">数据看板</h2>
+    <div style="display:flex;gap:10px"><span class="btn btn-default">今日</span><span class="btn btn-primary">本周</span><span class="btn btn-default">本月</span><span class="btn btn-default">刷新</span></div></div>
+  <div class="stats">
+    <div class="stat"><div class="lab">今日订单</div><div class="num">12</div><div class="chg up">↑ 20% 较昨日</div></div>
+    <div class="stat"><div class="lab">今日销售额</div><div class="num">¥2,580</div><div class="chg up">↑ 15% 较昨日</div></div>
+    <div class="stat"><div class="lab">新增用户</div><div class="num">3</div><div class="chg down">↓ 10% 较昨日</div></div>
+    <div class="stat"><div class="lab">总用户数</div><div class="num">286</div><div class="chg" style="color:var(--t3)">累计注册</div></div>
+  </div>
+  <div class="card">
+    <div class="tabs"><span class="tab on">销售趋势</span><span class="tab">热销商品</span><span class="tab">订单分布</span><span class="tab">用户分析</span></div>
+    <div class="chart">${bars.map(b=>`<div class="bar"><div class="b" style="height:${b[1]/max*180}px"></div><div class="x">${b[0]}</div></div>`).join('')}</div>
+  </div>`;
+};
+
+PAGES.products=()=>{
+  const rows=[
+    ['🍯','百花蜜 500g','¥88',['热销'],'✓','150','蜂蜜','green','上架'],
+    ['🫙','蜂王浆 250g','¥168',['新品'],'','8','蜂蜜','green','上架'],
+    ['🧼','蜂蜡手工皂','¥39',[],'','0','日用','red','已售罄'],
+    ['🎁','蜂蜜礼盒装','¥218',['礼盒','特惠'],'✓','46','礼盒','green','上架'],
+  ];
+  return `
+  <div class="card-head"><h2 class="page-title">商品列表</h2><span class="btn btn-primary">+ 新增商品</span></div>
+  <div class="card">
+    <div class="toolbar"><input class="input" placeholder="🔍 搜索商品名称">
+      <select class="select"><option>全部分类</option><option>蜂蜜</option><option>日用</option></select>
+      <select class="select"><option>全部状态</option><option>上架</option><option>下架</option></select>
+      <div class="right"><span class="count">共 ${rows.length} 件商品</span></div></div>
+    <table><thead><tr><th>主图</th><th>商品名称</th><th>售价</th><th>标签</th><th>推荐</th><th>库存</th><th>分类</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><div class="pimg">${r[0]}</div></td>
+      <td>${r[1]}</td>
+      <td><span class="price">${r[2]}</span></td>
+      <td>${r[3].map(t=>`<span class="tag blue">${t}</span>`).join(' ')||'—'}</td>
+      <td>${r[4]?'<span style="color:var(--blue)">✓</span>':'—'}</td>
+      <td>${r[5]==='0'?'<span class="tag red">售罄</span>':(+r[5]<20?`${r[5]} <span class="tag yellow">不足</span>`:r[5])}</td>
+      <td>${r[6]}</td>
+      <td><span class="tag ${r[7]}">${r[8]}</span></td>
+      <td><span class="link">编辑</span> <span class="link ${r[8]==='已售罄'?'':'danger'}">${r[8]==='已售罄'?'上架':'下架'}</span></td>
+    </tr>`).join('')}</tbody></table>
+    ${pager(3)}
+  </div>`;
+};
+
+PAGES.categories=()=>{
+  const rows=[['1','🍯','蜂蜜','12','green','启用'],['2','🧴','日用','5','green','启用'],['3','🎁','礼盒','3','green','启用'],['4','🌿','养生','0','gray','禁用']];
+  return `
+  <div class="card-head"><h2 class="page-title">分类管理</h2><span class="btn btn-primary">+ 新增分类</span></div>
+  <div class="card">
+    <table><thead><tr><th>排序</th><th>图标</th><th>分类名称</th><th>商品数量</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><span class="link muted">≡</span> ${r[0]}</td>
+      <td><div class="pimg" style="font-size:18px">${r[1]}</div></td>
+      <td>${r[2]}</td><td>${r[3]}</td>
+      <td><span class="tag ${r[4]}">${r[5]}</span></td>
+      <td><span class="link">编辑</span> <span class="link ${r[5]==='启用'?'danger':''}">${r[5]==='启用'?'禁用':'启用'}</span> ${r[3]==='0'?'<span class="link danger">删除</span>':''}</td>
+    </tr>`).join('')}</tbody></table>
+  </div>`;
+};
+
+PAGES.orders=()=>{
+  const tabs=[['全部',86,true],['待付款',5],['待发货',8],['待收货',12],['已完成',56],['已取消',3],['退款售后',2]];
+  const rows=[
+    ['2026061001','张三','百花蜜 等2件','¥78','green','待发货','06-10 14:20','发货'],
+    ['2026060998','李四','蜂王浆','¥168','red','退款售后','06-09 10:05','处理退款'],
+    ['2026060995','王五','蜂蜜礼盒','¥218','blue','待收货','06-08 16:40','—'],
+  ];
+  return `
+  <div class="card-head"><h2 class="page-title">订单管理</h2><span class="btn btn-default">导出订单</span></div>
+  <div class="card">
+    <div class="tabs">${tabs.map(t=>`<span class="tab ${t[2]?'on':''}">${t[0]} <span class="badge">${t[1]}</span></span>`).join('')}</div>
+    <div class="toolbar"><input class="input" placeholder="🔍 搜索订单号 / 买家姓名"></div>
+    <table><thead><tr><th>订单号</th><th>买家</th><th>商品</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr></thead>
+    <tbody>
+      <tr onclick="toggleOrder(this)" style="cursor:pointer">
+        <td>2026061001</td><td>张三</td><td>百花蜜 等2件</td><td><span class="price">¥78</span></td>
+        <td><span class="tag green">待发货</span></td><td>06-10 14:20</td>
+        <td><span class="link">详情</span> <span class="link">发货</span></td></tr>
+      <tr class="order-detail" style="display:none"><td colspan="7">
+        收货人：张三 138****1234　|　地址：浙江省杭州市西湖区 xxx 路 88 号<br>
+        商品：百花蜜 500g 标准装 ×1（¥88）、蜂蜡手工皂 ×1（¥39）<br>
+        优惠券：满100减10　|　积分抵扣：-¥39　|　<b style="color:var(--red)">实付：¥78</b></td></tr>
+      ${rows.slice(1).map(r=>`<tr>
+        <td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><span class="price">${r[3]}</span></td>
+        <td><span class="tag ${r[4]}">${r[5]}</span></td><td>${r[6]}</td>
+        <td><span class="link">详情</span> ${r[7]!=='—'?`<span class="link ${r[5]==='退款售后'?'danger':''}">${r[7]}</span>`:''}</td></tr>`).join('')}
+    </tbody></table>
+    ${pager(3)}
+  </div>`;
+};
+function toggleOrder(tr){const d=tr.nextElementSibling;d.style.display=d.style.display==='none'?'table-row':'none';}
+
+PAGES.users=()=>{
+  const rows=[
+    ['张三','138****1234','gold','🥈 白银','¥2,580','15','2026-01-15'],
+    ['李四','139****5678','gray','普通','¥120','3','2026-03-20'],
+    ['赵六','137****9012','gold','🥇 黄金','¥3,860','28','2025-11-02'],
+  ];
+  return `
+  <div class="card-head"><h2 class="page-title">用户管理</h2></div>
+  <div class="card">
+    <div class="toolbar"><input class="input" placeholder="🔍 搜索昵称 / 手机号"><div class="right"><span class="count">共 ${rows.length} 位用户</span></div></div>
+    <table><thead><tr><th>头像</th><th>昵称</th><th>手机号</th><th>会员等级</th><th>累计消费</th><th>订单数</th><th>注册时间</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><div class="pimg" style="border-radius:50%">${r[0][0]}</div></td>
+      <td>${r[0]}</td><td>${r[1]}</td>
+      <td><span class="tag ${r[2]}">${r[3]}</span></td>
+      <td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td>
+      <td><span class="tag green">正常</span></td>
+      <td><span class="link">详情</span> <span class="link danger">禁用</span></td>
+    </tr>`).join('')}</tbody></table>
+  </div>`;
+};
+
+PAGES.coupons=()=>{
+  const cps=[
+    ['满100减10','满减券','06.01 ~ 06.30','2张/人','156/500','已用42 · 核销27%','green','● 进行中',true],
+    ['新人立减5元','无门槛券','长期有效','1张/人','89/200','已用67 · 核销75%','green','● 进行中',true],
+    ['满200减25','满减券','06.15 ~ 07.15','1张/人','0/300','未开始','gray','○ 未开始',false],
+  ];
+  return `
+  <div class="card-head"><h2 class="page-title">优惠券管理</h2><span class="btn btn-primary">+ 新建优惠券</span></div>
+  <div class="card">
+    <div class="tabs"><span class="tab on">全部</span><span class="tab">进行中</span><span class="tab">未开始</span><span class="tab">已结束</span><span class="tab">已停发</span></div>
+    <div class="coupons">${cps.map(c=>`<div class="cpc">
+      <div class="st" style="color:${c[6]==='green'?'var(--green)':'var(--t3)'}">${c[7]}</div>
+      <div class="cn">🎟️ ${c[0]}</div>
+      <div class="row">类型：${c[1]}</div>
+      <div class="row">有效期：${c[2]}　限领：${c[3]}</div>
+      <div class="data">已领 <b>${c[4]}</b>　${c[5]}</div>
+      <div class="acts"><span class="link">编辑</span>${c[8]?'<span class="link muted">停发</span>':'<span class="link danger">删除</span>'}</div>
+    </div>`).join('')}</div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+      <div><b style="color:var(--t1)">购物车自动最优凑单</b><div class="count" style="margin-top:4px">开启后系统自动叠加最优券组合；默认关闭由商家手动控制优惠成本</div></div>
+      <span class="toggle" style="background:#D9D9D9"><i style="right:auto;left:2px"></i></span></div>
+  </div>`;
+};
+
+PAGES.banners=()=>{
+  const rows=[['1','🏞️','/list?cat=1','green','上线'],['2','🌅','/list?act=618','green','上线'],['3','🎆','/list?new=1','gray','下线']];
+  return `
+  <div class="card-head"><h2 class="page-title">Banner 管理</h2><span class="btn btn-primary">+ 新增 Banner</span></div>
+  <div class="card">
+    <table><thead><tr><th>排序</th><th>预览图</th><th>跳转链接</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><span class="link muted">≡</span> ${r[0]}</td>
+      <td><div class="pimg" style="width:88px;height:40px">${r[1]}</div></td>
+      <td><span style="color:var(--t3)">${r[2]}</span></td>
+      <td><span class="tag ${r[3]}">${r[4]}</span></td>
+      <td><span class="link">编辑</span> <span class="link ${r[4]==='上线'?'danger':''}">${r[4]==='上线'?'下线':'上线'}</span> ${r[4]==='下线'?'<span class="link danger">删除</span>':''}</td>
+    </tr>`).join('')}</tbody></table>
+  </div>`;
+};
+
+PAGES.brand=()=>`
+  <div class="card-head"><h2 class="page-title">品牌信息</h2></div>
+  <div class="card">
+    <div class="group-title">基本信息</div>
+    <div class="form-row"><div class="lab">品牌名称</div><div class="ctl"><input class="input" value="KOALA 优选"></div></div>
+    <div class="form-row"><div class="lab">App 图标</div><div class="ctl"><div class="uploader">＋<span>上传</span></div></div></div>
+    <div class="form-row"><div class="lab">Logo</div><div class="ctl"><div class="uploader">＋<span>上传</span></div></div></div>
+    <div class="group-title" style="margin-top:24px">品牌故事</div>
+    <div class="form-row"><div class="lab">标题</div><div class="ctl"><input class="input" value="关于 KOALA"></div></div>
+    <div class="form-row"><div class="lab">封面图</div><div class="ctl"><div class="uploader">＋<span>上传</span></div></div></div>
+    <div class="form-row"><div class="lab">简介</div><div class="ctl"><textarea class="textarea" placeholder="纯文本，200 字以内"></textarea></div></div>
+    <div class="form-foot"><span class="btn btn-default">重置</span><span class="btn btn-primary">保存</span></div>
+  </div>`;
+
+PAGES.settings=()=>`
+  <div class="card-head"><h2 class="page-title">系统设置</h2></div>
+  <div class="card">
+    <div class="tabs"><span class="tab on">配送设置</span><span class="tab">支付设置</span></div>
+    <div class="group-title">配送设置</div>
+    <div class="form-row"><div class="lab">基础运费</div><div class="ctl"><input class="input" style="width:120px" value="8"> 元</div></div>
+    <div class="form-row"><div class="lab">满额包邮</div><div class="ctl">满 <input class="input" style="width:120px" value="99"> 元包邮</div></div>
+    <div class="group-title" style="margin-top:24px">支付设置</div>
+    <div class="form-row"><div class="lab">微信支付</div><div class="ctl"><span class="toggle"><i></i></span> <span style="color:var(--t3);margin-left:8px">已启用</span></div></div>
+    <div class="form-row"><div class="lab">商户号</div><div class="ctl"><input class="input" value="**********"></div></div>
+    <div class="form-row"><div class="lab">API 密钥</div><div class="ctl"><input class="input" value="**********"></div></div>
+    <div class="form-foot"><span class="btn btn-default">重置</span><span class="btn btn-primary">保存</span></div>
+  </div>`;
+
+PAGES.ops=()=>{
+  const logs=[
+    ['06-10 14:20:30','admin','商品','上架商品「百花蜜」'],
+    ['06-10 14:15:10','admin','订单','订单 2026061001 发货'],
+    ['06-10 13:00:05','admin','优惠券','创建券「满100减10」'],
+  ];
+  return `
+  <div class="card-head"><h2 class="page-title">运维管理 <span class="tag gold" style="margin-left:8px">仅超级管理员</span></h2></div>
+  <div class="card">
+    <div class="tabs"><span class="tab on">系统状态</span><span class="tab">操作日志</span><span class="tab">数据操作</span></div>
+    <div class="ops-stats">
+      <div class="ops-stat"><div class="t">服务状态</div><div class="v"><span class="dot"></span>运行中</div><div class="sub">已运行 3 天</div></div>
+      <div class="ops-stat"><div class="t">数据库</div><div class="v"><span class="dot"></span>正常</div><div class="sub">连接数 5</div></div>
+      <div class="ops-stat"><div class="t">Redis</div><div class="v"><span class="dot"></span>正常</div><div class="sub">内存 28M</div></div>
+      <div class="ops-stat"><div class="t">磁盘</div><div class="v">已用 35%</div><div class="sub">18G / 50G</div></div>
+    </div>
+    <div class="count">JVM：堆 256M/512M ｜ CPU 12% ｜ 内存 1.2G/2G</div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>操作日志</h3></div>
+    <div class="toolbar"><input class="input" placeholder="🔍 操作人 / 内容"><select class="select"><option>全部类型</option></select><input class="input" style="width:160px" placeholder="日期范围"></div>
+    <table><thead><tr><th>时间</th><th>操作人</th><th>类型</th><th>操作内容</th></tr></thead>
+    <tbody>${logs.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td><td><span class="tag blue">${l[2]}</span></td><td>${l[3]}</td></tr>`).join('')}</tbody></table>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>数据操作</h3></div>
+    <div style="margin-bottom:8px;color:var(--t2)">SQL 查询（只读）</div>
+    <textarea class="sqlbox">SELECT * FROM user WHERE id = 1;</textarea>
+    <div style="text-align:right;margin-top:10px"><span class="btn btn-primary">执行查询</span></div>
+    <div style="margin:16px 0 8px;color:var(--red)">⚠️ 数据修改（需二次确认，禁止 DROP/TRUNCATE）</div>
+    <textarea class="sqlbox">UPDATE user SET status = 1 WHERE id = 5;</textarea>
+    <div style="text-align:right;margin-top:10px"><span class="btn btn-danger">执行修改</span></div>
+  </div>`;
+};
+
+/* ---------- 初始化 ---------- */
+renderMenu();
+nav('dashboard');
+</script>
+</body>
+</html>
