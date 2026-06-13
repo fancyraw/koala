@@ -254,6 +254,10 @@
   .logihead{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;color:var(--title);margin-bottom:14px;}
   .logico{font-size:13px;color:#333;background:#FAFAFA;border-radius:8px;padding:10px 12px;margin-bottom:16px;}
   .logico .copy{color:var(--red);margin-left:6px;font-size:11px;}
+  /* 用券浮层单选圆点 */
+  .radio{width:18px;height:18px;border-radius:50%;border:1.5px solid #E0E0E0;flex-shrink:0;position:relative;}
+  .radio.on{border-color:var(--red);}
+  .radio.on::after{content:"";position:absolute;inset:3px;background:var(--red);border-radius:50%;}
   .timeline{position:relative;}
   .tl{display:flex;gap:12px;position:relative;padding-bottom:16px;}
   .tl:last-child{padding-bottom:0;}
@@ -476,11 +480,12 @@ function detail(){
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="dnav"><div class="cb">‹</div><div class="cb">⤴</div></div>
     <div class="dmain img c1"><span class="em">🎧</span><span class="cnt">1/5</span></div>
-    <div class="dprice"><div class="row"><span class="now"><span class="s">¥</span>88</span><span class="ptag">券 · 满100减10</span></div>
-      <div class="vprice">🥈 白银会员 ¥86.24</div>
-      <div class="nm">无线蓝牙耳机 主动降噪 长续航 入耳式</div>
-      <div class="sold">已售 2,680</div></div>
-    <div class="dcoupon"><span class="q">券</span><span class="t">满100减10 · 新人券¥5，可叠加使用</span><span class="g">领取</span></div>
+    <div class="dprice">
+      <div class="row">
+        <span class="now"><span class="s">¥</span>88</span>
+        <span class="sold" style="margin-top:0">已售 2,680</span></div>
+      <div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--red)">下单省 ¥6.76 <span style="color:#999;font-weight:400">= 会员 ¥1.76 + 券 ¥5</span></div>
+      <div class="nm" style="margin-top:10px">无线蓝牙耳机 主动降噪 长续航 入耳式</div></div>
     <div class="gap" style="margin-top:12px"></div>
     <div class="dblock"><h4>规格</h4><div class="specs"><span class="spec">标准版</span><span class="spec on">尊享版</span></div></div>
     <div class="dblock" style="border-top:1px solid var(--line)"><div class="qty"><span class="l">购买数量</span>
@@ -499,25 +504,47 @@ function detail(){
     <button class="btn btn-redsoft">加入购物车</button><button class="btn btn-red">立即购买</button></div>`;
   return frameFixed('商品详情页',inner);
 }
+function openCoupon2(){var p=document.getElementById('cpop2');if(p)p.style.display='block';}
+function closeCoupon2(){var p=document.getElementById('cpop2');if(p)p.style.display='none';}
 
 /* 4. 购物车 */
 function cart(){
   const items=[['c1','无线蓝牙耳机 主动降噪','尊享版',88,true],['c2','大容量保温焖烧杯','500ml 米白',69,true],['c4','北欧陶瓷餐具套装','4人食',68,false]];
-  const inner=`<div class="screen" style="padding-bottom:60px">
+  const inner=`<div class="screen" style="padding-bottom:68px">
     <div class="nav"><span class="ctitle">购物车</span><span class="right">管理</span></div>
-    <div style="padding:0 12px"><div class="coupon" style="flex-wrap:wrap"><div class="q">券</div><span style="flex:1;font-size:13px;color:#333">已自动领取新人券¥5 + 满减券¥10，共省 ¥15</span><span class="get">›</span>
-      <div style="width:100%;font-size:12px;color:var(--red);padding-top:8px;margin-top:8px;border-top:1px dashed #FFD6D6">🛒 再凑 ¥80 可用满200减30券，多省 ¥20 ›</div></div></div>
-    <div class="cart-list">${items.map(it=>`<div class="citem"><div class="ck ${it[4]?'on':''}">${it[4]?'✓':''}</div>
+    <div class="cart-list" style="padding-top:10px">${items.map(it=>`<div class="citem"><div class="ck ${it[4]?'on':''}">${it[4]?'✓':''}</div>
       <div class="img ${it[0]}"><span class="em">📦</span></div>
       <div class="info"><div class="nm">${it[1]}</div><span class="st">${it[2]}</span>
       <div class="bot"><span class="price"><span class="s">¥</span>${it[3]}</span>
       <div class="step"><button>−</button><span class="n">1</span><button>+</button></div></div></div></div>`).join('')}</div>
   </div>
-  <div class="cartbar"><div class="all"><div class="ck on">✓</div>全选</div>
-    <div class="tot"><div class="big">合计 <b>¥142</b></div><div class="sm">已省 ¥15</div></div>
-    <button class="btn btn-red">结算(2)</button></div>`;
+  <div class="cartbar" style="height:64px">
+    <div class="all" style="flex-shrink:0;white-space:nowrap"><div class="ck on">✓</div>全选</div>
+    <div style="margin-left:auto;text-align:right;margin-right:10px;flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap">
+        <span style="color:var(--red);font-size:13px;cursor:pointer" onclick="openCoupon()">已省 ¥15 ›</span>
+        <span style="font-size:13px;color:#333;white-space:nowrap">合计 <b style="font-size:18px;color:#1A1A1A">¥133.86</b></span></div>
+      <div style="font-size:11px;color:var(--sub);margin-top:2px;white-space:nowrap">原价 ¥157.00</div>
+    </div>
+    <button class="btn btn-red" style="height:40px;padding:0 18px;flex-shrink:0;white-space:nowrap">结算(2)</button>
+  </div>
+  <div id="cpop" style="display:none;position:absolute;inset:0;z-index:50">
+    <div onclick="closeCoupon()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:16px 16px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;color:var(--title);margin-bottom:4px"><span>已选用券</span><span onclick="closeCoupon()" style="color:var(--red);font-weight:400;cursor:pointer">完成</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line)">
+        <span class="ck on" style="align-self:center">✓</span>
+        <span style="flex:1;font-size:14px;color:var(--title)">新人5元券 · 无门槛</span><span style="color:var(--red);font-weight:600">-¥5.00</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line)">
+        <span class="radio on"></span><span style="flex:1;font-size:14px;color:var(--title)">满100减10</span><span style="color:var(--red);font-weight:600">-¥10.00</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line);opacity:.55">
+        <span class="radio"></span><span style="flex:1;font-size:14px;color:var(--title)">满200减30 <small style="color:var(--sub);font-size:11px">· 再凑 ¥43 可用</small></span><span style="color:var(--sub);font-size:13px">差 ¥43</span></div>
+    </div>
+  </div>`;
   return frameFixed('购物车页',inner);
 }
+function openCoupon(){var p=document.getElementById('cpop');if(p)p.style.display='block';}
+function closeCoupon(){var p=document.getElementById('cpop');if(p)p.style.display='none';}
 
 /* 5. 确认订单 */
 function confirm(){
