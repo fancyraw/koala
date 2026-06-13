@@ -447,13 +447,18 @@ function home(){
 
 /* 1b. 新人券弹窗 */
 function popup(){
+  const coupons=[['5','新人券 · 无门槛','有效期至 2026.06.30'],['10','满100减10','有效期至 2026.06.20']];
   const inner=`<div class="screen">${homeInner()}</div>${tabbar('home')}
     <div class="popup"><div class="card">
-      <div class="ptop"><div class="t1">🎁 新人专享</div><div class="t2"><small>¥</small>5</div><div class="t3">无门槛券 · 注册好礼</div></div>
-      <div class="pbody"><div class="d">下单立减，仅限新用户领取</div><button class="btn btn-red">立即领取</button></div>
+      <div class="ptop"><div class="t1">🎁 已为你发放优惠券</div><div class="t3" style="margin-top:6px">${coupons.length} 张券已到账 · 下单立减</div></div>
+      <div class="pbody" style="padding:14px 16px 18px">
+        ${coupons.map(c=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)">
+          <span style="color:var(--red);font-weight:800;font-size:22px"><span style="font-size:13px">¥</span>${c[0]}</span>
+          <div style="flex:1;text-align:left"><div style="font-size:14px;color:var(--title);font-weight:600">${c[1]}</div><div style="font-size:11px;color:var(--sub);margin-top:3px">${c[2]}</div></div></div>`).join('')}
+        <button class="btn btn-red" style="margin-top:16px;width:100%;height:44px">去使用</button></div>
       <div class="close">✕</div>
     </div></div>`;
-  return frameRaw('首页 · 新人券弹窗',inner);
+  return frameRaw('首页 · 领券弹窗',inner);
 }
 
 /* 2. 商品列表 */
@@ -484,7 +489,7 @@ function detail(){
       <div class="row">
         <span class="now"><span class="s">¥</span>88</span>
         <span class="sold" style="margin-top:0">已售 2,680</span></div>
-      <div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--red)">到手省 ¥6.76 <span style="color:#999;font-weight:400">= 会员 ¥1.76 + 券 ¥5</span></div>
+      <div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--red)">到手省 ¥6.76 <span style="color:#999;font-weight:400">= 会员 ¥1.76 + 券 ¥5</span><span title="『券¥5』为您账户中『新人5元券』，下单即自动抵扣" style="color:#C8C8C8;font-size:12px;margin-left:4px;cursor:pointer">ⓘ</span></div>
       <div class="nm" style="margin-top:10px">无线蓝牙耳机 主动降噪 长续航 入耳式</div></div>
     <div class="gap" style="margin-top:12px"></div>
     <div class="dblock"><h4>规格</h4><div class="specs"><span class="spec">标准版</span><span class="spec on">尊享版</span></div></div>
@@ -750,6 +755,8 @@ function pointsPage(){
     <div class="ptnav"><span class="back">‹</span><span class="ct">积分中心</span><span class="rl">规则 ›</span></div>
     <div class="pthead"><div class="big">1,286</div><div class="sub">当前可抵 ¥12.86</div>
       <div class="acc">🥈 白银会员积分 1.2 倍加速中</div></div>
+    <div class="card" style="margin:10px 12px 0;display:flex;align-items:center;gap:10px;padding:14px 16px">
+      <span style="font-size:18px">🎁</span><span style="flex:1;font-size:14px;color:var(--title);font-weight:600">邀请好友得 20 积分</span><span style="color:var(--weak)">›</span></div>
     <div class="otabs" style="border-radius:16px 16px 0 0;margin-top:-2px"><span class="t on">全部</span><span class="t">获取</span><span class="t">使用</span></div>
     <div class="ptflow"><div class="ph">积分明细</div>
       ${flows.map(f=>`<div class="pf"><div class="pl"><div class="t">${f[0]}</div><div class="tm">${f[1]}</div></div>
