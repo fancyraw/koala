@@ -48,6 +48,13 @@
   .ctag.red{background:#FFECEC;color:#FF2442;}
   .ctag.orange{background:#FFF3E8;color:#FA8C16;}
   .ctag.gold{background:#FBF3DF;color:#C9A24B;}
+  /* 商品卡加购按钮（通用：首页热销/推荐、商品列表共用） */
+  .addcart{width:28px;height:28px;border-radius:50%;background:var(--red);color:#fff;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;padding:0;}
+  /* 首页顶部购物车入口 */
+  .homecart{margin-left:auto;position:relative;font-size:22px;color:var(--title);}
+  .homecart .hcb{position:absolute;top:-5px;right:-7px;background:var(--red);color:#fff;font-size:9px;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+  /* 商品列表顶部搜索框 */
+  .searchbar{flex:1;height:34px;background:var(--gray);border-radius:999px;display:flex;align-items:center;gap:6px;padding:0 14px;margin-left:8px;color:var(--weak);font-size:13px;}
 
   .btn{border:none;border-radius:999px;font-weight:600;cursor:pointer;font-size:15px;}
   .btn-red{background:var(--red);color:#fff;}
@@ -400,7 +407,7 @@ const notch=()=>`<div class="notch"></div>`;
 function tabbar(active){
   const tabs=[
     {k:'home',l:'首页',p:'<path d="M3 11l9-8 9 8M5 10v10h14V10" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
-    {k:'find',l:'发现',p:'<circle cx="11" cy="11" r="7" fill="none" stroke-width="1.8"/><path d="M21 21l-4-4" stroke-width="1.8" stroke-linecap="round"/>'},
+    {k:'find',l:'分类',p:'<rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke-width="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke-width="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke-width="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke-width="1.8"/>'},
     {k:'cart',l:'购物车',b:3,p:'<path d="M3 4h2l2.4 12.4a2 2 0 002 1.6h7.7a2 2 0 002-1.6L22 8H6" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="21" r="1.2" stroke-width="1.8"/><circle cx="18" cy="21" r="1.2" stroke-width="1.8"/>'},
     {k:'me',l:'我的',p:'<circle cx="12" cy="8" r="4" fill="none" stroke-width="1.8"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" fill="none" stroke-width="1.8" stroke-linecap="round"/>'},
   ];
@@ -424,8 +431,7 @@ function ctagsHtml(tags,max){
 function wfCard(c,h,nm,price,sold){
   return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span></div>
     <div class="info"><div class="nm">${nm}</div>
-    <div class="ctags"><span class="ctag red">满100减10</span><span class="ctag gold">会员9.8折</span></div>
-    <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><span class="sold">已售${sold}</span></div></div></div>`;
+    <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><button class="addcart">+</button></div></div></div>`;
 }
 
 /* 首页内容（可复用于弹窗背景） */
@@ -438,20 +444,19 @@ function homeInner(){
     ['c1',200,'天然乳胶枕','人体工学护颈曲线，一觉到天亮，回购率超高',159,203],
   ];
   return `
-    <div class="topbar"><div class="logo">K</div><div class="brand">KOALA 优选</div></div>
+    <div class="topbar"><div class="logo">K</div><div class="brand">KOALA 优选</div><div class="homecart">🛒<span class="hcb">3</span></div></div>
     <div class="banner"><div class="b img c7"><span class="em">🛒</span>
       <div class="dots"><i class="on"></i><i></i><i></i></div></div></div>
     <div class="cats">${cats.map(c=>`<div class="cat"><div class="cc c${Math.floor(Math.random()*6)+1}">${c[0]}</div><span>${c[1]}</span></div>`).join('')}</div>
     <div class="gap"></div>
     <div class="hot-wrap"><div class="sec"><h3>🔥 热销爆款</h3><span class="more">查看全部 ›</span></div>
       <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span><span class="ht">爆款</span></div>
-      <div class="info"><div class="nm">${h[1]}</div><div class="ctags"><span class="ctag red">满100减10</span><span class="ctag gold">会员9.8折</span></div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><span class="sold">已售${h[3]}</span></div></div></div>`).join('')}</div></div>
+      <div class="info"><div class="nm">${h[1]}</div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><button class="addcart">+</button></div></div></div>`).join('')}</div></div>
     <div class="gap"></div>
     <div class="white"><div class="sec"><h3>✨ 为你推荐</h3></div>
       ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span></div>
         <div class="info"><div class="nm">${r[2]}</div><div class="desc">${r[3]}</div>
-        <div class="ctags"><span class="ctag red">满100减10</span><span class="ctag orange">新人立减5</span><span class="ctag gold">会员9.8折</span></div>
-        <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><span class="sold">已售${r[5]}</span></div></div></div>`).join('')}</div>
+        <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><button class="addcart">+</button></div></div></div>`).join('')}</div>
     <div class="pb"></div>`;
 }
 
@@ -488,7 +493,7 @@ function list(){
     ['c6',160,'便携折叠收纳箱 车载家用',49,158],
   ];
   const inner=`
-    <div class="nav"><span class="back">‹</span><span class="ctitle">家居好物</span></div>
+    <div class="nav"><span class="back">‹</span><div class="searchbar"><span style="font-size:14px">🔍</span><span>搜索商品</span></div></div>
     <div class="filters">${filters.map((f,i)=>`<span class="f ${i===0?'on':''}">${f}</span>`).join('')}</div>
     <div class="gap"></div>
     <div class="waterfall" style="padding-top:8px">${wf.map(w=>wfCard(...w)).join('')}</div>`;
@@ -504,7 +509,6 @@ function detail(){
       <div class="row">
         <span class="now"><span class="s">¥</span>88</span>
         <span class="sold" style="margin-top:0">已售 2,680</span></div>
-      <div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--red)">到手省 ¥6.76 <span style="color:#999;font-weight:400">= 会员 ¥1.76 + 券 ¥5</span><span title="『券¥5』为您账户中『新人5元券』，下单即自动抵扣" style="color:#C8C8C8;font-size:12px;margin-left:4px;cursor:pointer">ⓘ</span></div>
       <div class="nm" style="margin-top:10px">无线蓝牙耳机 主动降噪 长续航 入耳式</div></div>
     <div class="gap" style="margin-top:12px"></div>
     <div class="dblock"><h4>规格</h4><div class="specs"><span class="spec">标准版</span><span class="spec on">尊享版</span></div></div>
@@ -542,11 +546,21 @@ function cart(){
     <div class="all" style="flex-shrink:0;white-space:nowrap"><div class="ck on">✓</div>全选</div>
     <div style="margin-left:auto;text-align:right;margin-right:10px;flex-shrink:0">
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap">
-        <span style="color:var(--red);font-size:13px;cursor:pointer" onclick="openCoupon()">已省 ¥15 ›</span>
-        <span style="font-size:13px;color:#333;white-space:nowrap">合计 <b style="font-size:18px;color:#1A1A1A">¥133.86</b></span></div>
-      <div style="font-size:11px;color:var(--sub);margin-top:2px;white-space:nowrap">原价 ¥157.00</div>
+        <span style="font-size:13px;color:#333;white-space:nowrap">合计 <b style="font-size:18px;color:#1A1A1A">¥142.00</b></span>
+        <span style="color:var(--red);font-size:13px;cursor:pointer" onclick="openDetail()">已省 ¥15 ›</span></div>
+      <div style="font-size:11px;color:var(--sub);margin-top:2px;white-space:nowrap;text-align:right">免运费</div>
     </div>
     <button class="btn btn-red" style="height:40px;padding:0 18px;flex-shrink:0;white-space:nowrap">结算(2)</button>
+  </div>
+  <div id="cdetail" style="display:none;position:absolute;inset:0;z-index:49">
+    <div onclick="closeDetail()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:64px;background:#fff;border-radius:16px 16px 0 0;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;color:var(--title);margin-bottom:4px"><span>费用明细</span><span onclick="closeDetail()" style="color:var(--sub);font-weight:400;cursor:pointer">✕</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;font-size:14px;color:#333"><span>商品合计</span><span>¥157.00</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);font-size:14px;color:#333"><span>优惠券</span><span><span style="color:var(--red);font-weight:600">-¥15.00</span> <span style="color:var(--red);font-size:12px;cursor:pointer" onclick="closeDetail();openCoupon()">修改 ›</span></span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);font-size:14px;color:#333"><span>运费</span><span style="color:var(--sub)">¥0.00（免运费）</span></div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0 2px;border-top:1px solid var(--line)"><span style="font-weight:600;color:var(--title);font-size:14px">合计</span><span class="price" style="font-size:18px"><span class="s">¥</span>142.00</span></div>
+    </div>
   </div>
   <div id="cpop" style="display:none;position:absolute;inset:0;z-index:50">
     <div onclick="closeCoupon()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
@@ -565,6 +579,8 @@ function cart(){
 }
 function openCoupon(){var p=document.getElementById('cpop');if(p)p.style.display='block';}
 function closeCoupon(){var p=document.getElementById('cpop');if(p)p.style.display='none';}
+function openDetail(){var p=document.getElementById('cdetail');if(p)p.style.display='block';}
+function closeDetail(){var p=document.getElementById('cdetail');if(p)p.style.display='none';}
 
 /* 5. 确认订单 */
 function confirm(){
@@ -580,26 +596,22 @@ function confirm(){
       <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
       <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
     <div class="card"><div class="frow"><span class="lab dark">优惠券</span><span><span class="val red">已抵 -¥15</span> <span class="ar" style="color:var(--weak)">›</span></span></div></div>
-    <div class="card"><div class="frow"><span class="lab dark">积分抵扣<div style="font-size:11px;color:#999;font-weight:400;margin-top:3px">当前 1,286 积分，可抵 ¥5</div></span><div class="toggle"><i></i></div></div></div>
     <div class="card"><div class="frow"><span class="lab dark">订单备注</span></div><input class="note" placeholder="选填，有什么想备注的"></div>
     <div class="card"><div class="frow"><span class="lab">商品合计</span><span class="val">¥157.00</span></div>
-      <div class="frow"><span class="lab">会员折扣 (白银9.8折)</span><span class="val gold">-¥3.14</span></div>
       <div class="frow"><span class="lab">新人券</span><span class="val red">-¥5.00</span></div>
       <div class="frow"><span class="lab">满减券</span><span class="val red">-¥10.00</span></div>
-      <div class="frow"><span class="lab">积分抵扣</span><span class="val red">-¥5.00</span></div>
       <div class="frow"><span class="lab">运费</span><span class="val">¥0.00</span></div></div>
     <div class="pb" style="height:20px"></div>
   </div>
-  <div class="subbar"><div class="tot">合计 <b>¥133.86</b><div class="sm">已省 ¥23.14</div></div><button class="btn btn-red">提交订单</button></div>`;
+  <div class="subbar"><div class="tot">合计 <b>¥142.00</b><div class="sm">已省 ¥15.00</div></div><button class="btn btn-red">提交订单</button></div>`;
   return frameFixed('确认订单页',inner);
 }
 
 /* 6. 支付结果 */
 function pay(){
   const inner=`<div class="screen">
-    <div class="pay"><div class="icon">✓</div><div class="t">支付成功</div><div class="amt">¥133.86</div>
-      <div class="save">已为你节省 ¥23.14</div>
-      <div class="pts">🎁 确认收货后可得 161 积分</div>
+    <div class="pay"><div class="icon">✓</div><div class="t">支付成功</div><div class="amt">¥142.00</div>
+      <div class="save">已为你节省 ¥15.00</div>
       <div class="btns"><button class="btn btn-red">查看订单</button><button class="btn btn-soft">返回首页</button></div></div>
   </div>`;
   return frame('支付结果页',inner);
@@ -615,7 +627,6 @@ function orderDetail(){
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="nav"><span class="back">‹</span><span class="ctitle">订单详情</span></div>
     <div class="ostatus" onclick="openLogi()" style="cursor:pointer"><div class="l"><div class="s">配送中</div><div class="d">最新：快件已到达【上海浦东转运中心】 ›</div></div><span class="ill">🚚</span></div>
-    <div class="pts-bar">🎁 确认收货后可得 161 积分</div>
     <div class="card addr"><span class="pin">📍</span><div class="ai"><div class="l1"><b>阿吉</b>138****8888</div>
       <div class="l2">上海市黄浦区马当路388号 SOHO复兴广场</div></div></div>
     <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
@@ -626,12 +637,10 @@ function orderDetail(){
       <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
       <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
     <div class="card"><div class="frow"><span class="lab">商品合计</span><span class="val">¥157.00</span></div>
-      <div class="frow"><span class="lab">会员折扣 (白银9.8折)</span><span class="val gold">-¥3.14</span></div>
       <div class="frow"><span class="lab">新人券</span><span class="val red">-¥5.00</span></div>
       <div class="frow"><span class="lab">满减券</span><span class="val red">-¥10.00</span></div>
-      <div class="frow"><span class="lab">积分抵扣</span><span class="val red">-¥5.00</span></div>
       <div class="frow"><span class="lab">运费</span><span class="val">¥0.00</span></div>
-      <div class="frow totalrow"><span class="lab dark">实付金额</span><span class="val">¥133.86</span></div></div>
+      <div class="frow totalrow"><span class="lab dark">实付金额</span><span class="val">¥142.00</span></div></div>
     <div class="card"><div class="irow"><span class="lab">订单编号</span><span class="val">2026061200888<span class="copy">复制</span></span></div>
       <div class="irow"><span class="lab">下单时间</span><span class="val">2026-06-11 18:00</span></div>
       <div class="irow"><span class="lab">支付方式</span><span class="val">微信支付</span></div></div>
@@ -657,7 +666,6 @@ function orderShipping(){
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="nav"><span class="back">‹</span><span class="ctitle">订单详情</span></div>
     <div class="ostatus"><div class="l"><div class="s">待发货</div><div class="d">商家正在备货中，请耐心等待</div></div><span class="ill">📦</span></div>
-    <div class="pts-bar">🎁 确认收货后可得 161 积分</div>
     <div class="card addr"><span class="pin">📍</span><div class="ai"><div class="l1"><b>阿吉</b>138****8888</div>
       <div class="l2">上海市黄浦区马当路388号 SOHO复兴广场</div></div></div>
     <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
@@ -668,12 +676,10 @@ function orderShipping(){
       <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
       <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
     <div class="card"><div class="frow"><span class="lab">商品合计</span><span class="val">¥157.00</span></div>
-      <div class="frow"><span class="lab">会员折扣 (白银9.8折)</span><span class="val gold">-¥3.14</span></div>
       <div class="frow"><span class="lab">新人券</span><span class="val red">-¥5.00</span></div>
       <div class="frow"><span class="lab">满减券</span><span class="val red">-¥10.00</span></div>
-      <div class="frow"><span class="lab">积分抵扣</span><span class="val red">-¥5.00</span></div>
       <div class="frow"><span class="lab">运费</span><span class="val">¥0.00</span></div>
-      <div class="frow totalrow"><span class="lab dark">实付金额</span><span class="val">¥133.86</span></div></div>
+      <div class="frow totalrow"><span class="lab dark">实付金额</span><span class="val">¥142.00</span></div></div>
     <div class="card"><div class="irow"><span class="lab">订单编号</span><span class="val">2026061200888<span class="copy">复制</span></span></div>
       <div class="irow"><span class="lab">下单时间</span><span class="val">2026-06-11 18:00</span></div>
       <div class="irow"><span class="lab">支付方式</span><span class="val">微信支付</span></div></div>
@@ -690,7 +696,7 @@ function orderAfterSale(){
     ['商家审核通过','06-12 11:30',true],
     ['买家寄回 · 待填写寄回单号','进行中',true],
     ['商家确认收货','待处理',false],
-    ['退款完成 · 原路退回 ¥133.86','待退款',false],
+    ['退款完成 · 原路退回 ¥142.00','待退款',false],
   ];
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="nav"><span class="back">‹</span><span class="ctitle">退款/售后</span></div>
@@ -705,8 +711,8 @@ function orderAfterSale(){
       <div class="oitem"><div class="img c2"><span class="em">🥤</span></div>
       <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
       <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
-    <div class="card"><div class="frow"><span class="lab">退款金额</span><span class="val red">¥133.86</span></div>
-      <div class="frow"><span class="lab">退款方式</span><span class="val">原路退回 + 积分/券返还</span></div>
+    <div class="card"><div class="frow"><span class="lab">退款金额</span><span class="val red">¥142.00</span></div>
+      <div class="frow"><span class="lab">退款方式</span><span class="val">原路退回 + 未过期券返还</span></div>
       <div class="frow"><span class="lab">申请单号</span><span class="val">RF2026061200888<span class="copy">复制</span></span></div></div>
     <div class="pb" style="height:20px"></div>
   </div>
@@ -719,8 +725,8 @@ function orderList(){
   const tabs=['全部','待付款','待发货','待收货','退款售后','已完成'];
   const orders=[
     {no:'2026061200888',st:'待付款',stc:'red',countdown:'29:59',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['取消订单','soft'],['去支付','red']]},
-    {no:'2026061200999',st:'待发货',stc:'dark',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'119.86',acts:[['申请退款','soft'],['提醒发货','soft']]},
-    {no:'2026061100776',st:'待收货',stc:'dark',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'133.86',acts:[['申请退货退款','soft'],['查看物流','soft'],['确认收货','red']]},
+    {no:'2026061200999',st:'待发货',stc:'dark',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'129.00',acts:[['申请退款','soft'],['提醒发货','soft']]},
+    {no:'2026061100776',st:'待收货',stc:'dark',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'137.00',acts:[['申请退货退款','soft'],['查看物流','soft'],['确认收货','red']]},
     {no:'2026060800521',st:'交易完成',stc:'gray',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['申请售后','soft'],['删除订单','soft'],['再次购买','red']]},
   ];
   const inner=`
@@ -742,26 +748,18 @@ function orderList(){
 /* 9. 个人中心 */
 function profile(){
   const orders=[['📋','待付款',1],['📦','待发货',0],['🚚','待收货',1],['↩️','退款售后',0],['✅','已完成',0]];
-  const recent=[
-    ['c1','📦','无线蓝牙耳机 主动降噪 尊享版','待付款',88,1],
-  ];
-  const menus=[['📍','地址管理'],['💬','联系客服'],['ℹ️','关于我们']];
+  const menus=[['📍','地址管理',''],['🎟️','我的优惠券','3 张'],['💬','联系客服',''],['ℹ️','关于我们','']];
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="mhead">
       <div class="row1"><div class="av">阿</div>
         <div class="ui"><div class="name">阿吉<span class="mbadge">🥈 白银会员</span></div><div class="edit">编辑资料 ›</div></div>
         <div class="view">查看权益 ›</div></div>
       <div class="prog"><i></i></div>
-      <div class="ptxt">再消费 ¥147 升黄金会员</div>
-      <div class="rights"><span class="r">下单 9.8 折</span><span class="r">积分 1.2 倍</span></div></div>
-    <div class="assets"><div class="asset"><div class="num">3</div><div class="lab">优惠券</div></div>
-      <div class="asset"><div class="num">1286</div><div class="lab">积分</div></div></div>
-    <div class="myorder"><div class="sec" style="padding-bottom:0"><h3 style="font-size:15px">我的订单</h3><span class="more">全部 ›</span></div>
-      <div class="ordericons">${orders.map(o=>`<div class="oi">${o[2]?'<span class="dot"></span>':''}<span class="e">${o[0]}</span><span>${o[1]}</span></div>`).join('')}</div>
-      <div class="recent">${recent.map(o=>`<div class="ro"><div class="img ${o[0]}"><span class="em" style="font-size:20px">${o[1]}</span>${o[5]>1?`<span class="cnt2">共${o[5]}件</span>`:''}</div>
-        <div class="ri"><div class="nm">${o[2]}</div><div class="stt">${o[3]}</div></div>
-        <div class="pr"><span class="s">¥</span>${o[4]}</div><span style="color:#C8C8C8;font-size:16px;margin-left:8px">›</span></div>`).join('')}</div></div>
-    <div class="menu">${menus.map(m=>`<div class="mrow"><span class="e">${m[0]}</span>${m[1]}<span class="a">›</span></div>`).join('')}</div>
+      <div class="ptxt">再消费 ¥700 升黄金会员</div>
+      <div class="rights"><span class="r">🎁 升级送礼券</span></div></div>
+    <div class="myorder" style="padding-bottom:16px"><div class="sec" style="padding-bottom:0"><h3 style="font-size:15px">我的订单</h3><span class="more">全部 ›</span></div>
+      <div class="ordericons">${orders.map(o=>`<div class="oi">${o[2]?'<span class="dot"></span>':''}<span class="e">${o[0]}</span><span>${o[1]}</span></div>`).join('')}</div></div>
+    <div class="menu">${menus.map(m=>`<div class="mrow"><span class="e">${m[0]}</span>${m[1]}<span class="a">${m[2]?m[2]+' ›':'›'}</span></div>`).join('')}</div>
     <div class="pb"></div>
   </div>${tabbar('me')}`;
   return frameFixed('个人中心页',inner);
@@ -789,30 +787,6 @@ function couponPage(){
   return frame('我的优惠券页',inner);
 }
 
-/* 11. 积分中心 */
-function pointsPage(){
-  const flows=[
-    ['下单获得 · 订单 20260612','2026-06-12 18:00','+161','add'],
-    ['确认收货奖励','2026-06-10 10:20','+50','add'],
-    ['积分抵扣 · 订单 20260608','2026-06-08 14:30','-500','sub'],
-    ['下单获得 · 订单 20260605','2026-06-05 09:15','+88','add'],
-    ['新人注册奖励','2026-05-28 12:00','+100','add'],
-  ];
-  const inner=`<div class="screen">
-    <div class="ptnav"><span class="back">‹</span><span class="ct">积分中心</span><span class="rl">规则 ›</span></div>
-    <div class="pthead"><div class="big">1,286</div><div class="sub">当前可抵 ¥12.86</div>
-      <div class="acc">🥈 白银会员积分 1.2 倍加速中</div></div>
-    <div class="card" style="margin:10px 12px 0;display:flex;align-items:center;gap:10px;padding:14px 16px">
-      <span style="font-size:18px">🎁</span><span style="flex:1;font-size:14px;color:var(--title);font-weight:600">邀请好友得 20 积分</span><span style="color:var(--weak)">›</span></div>
-    <div class="otabs" style="border-radius:16px 16px 0 0;margin-top:-2px"><span class="t on">全部</span><span class="t">获取</span><span class="t">使用</span></div>
-    <div class="ptflow"><div class="ph">积分明细</div>
-      ${flows.map(f=>`<div class="pf"><div class="pl"><div class="t">${f[0]}</div><div class="tm">${f[1]}</div></div>
-        <div class="pv ${f[3]}">${f[2]}</div></div>`).join('')}</div>
-    <div class="pb"></div>
-  </div>`;
-  return frameFixed('积分中心页',inner);
-}
-
 /* 12. 售后申请页 */
 function afterSaleApply(){
   const reasons=['不想要了','商品与描述不符','质量问题','发错/漏发商品','其他原因'];
@@ -826,8 +800,8 @@ function afterSaleApply(){
       <div class="info"><div class="nm">大容量保温焖烧杯</div><span class="st">500ml 米白</span></div>
       <div class="rt"><div class="price"><span class="s">¥</span>69</div><div class="q">x1</div></div></div></div>
     <div class="card">
-      <div class="frow"><span class="lab dark" style="font-size:15px;font-weight:600">退款金额</span><span class="val red" style="font-size:18px;font-weight:700">¥133.86</span></div>
-      <div style="font-size:12px;color:var(--sub);margin-top:6px">含会员折扣 ¥3.14 + 优惠券 ¥15 + 积分 500（抵 ¥5），将原路返还</div>
+      <div class="frow"><span class="lab dark" style="font-size:15px;font-weight:600">退款金额</span><span class="val red" style="font-size:18px;font-weight:700">¥142.00</span></div>
+      <div style="font-size:12px;color:var(--sub);margin-top:6px">含优惠券 ¥15，将原路返还</div>
     </div>
     <div class="card">
       <div class="frow"><span class="lab dark" style="font-weight:600">退款原因</span><span class="val" style="color:var(--sub)">请选择 ›</span></div>
@@ -951,7 +925,7 @@ function cartInvalid(){
 }
 
 document.getElementById('gallery').innerHTML=[
-  home(),popup(),list(),detail(),detailSoldOut(),cart(),cartInvalid(),confirm(),pay(),orderList(),orderDetail(),orderShipping(),orderAfterSale(),afterSaleApply(),logisticsDetail(),profile(),couponPage(),pointsPage()
+  home(),popup(),list(),detail(),detailSoldOut(),cart(),cartInvalid(),confirm(),pay(),orderList(),orderDetail(),orderShipping(),orderAfterSale(),afterSaleApply(),logisticsDetail(),profile(),couponPage()
 ].join('');
 </script>
 </body>
