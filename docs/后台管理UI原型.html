@@ -144,6 +144,13 @@
   .sqlbox{width:100%;height:80px;border:1px solid #D9D9D9;border-radius:6px;padding:10px;font-family:monospace;font-size:13px;resize:none;background:#FAFAFA;}
   .order-detail{background:#FAFAFA;font-size:13px;color:var(--t2);line-height:1.9;}
   .order-detail td{padding:12px 16px;}
+  /* 弹窗 / 抽屉遮罩 */
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99;}
+  .modal{background:#fff;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.12);width:640px;max-width:90vw;max-height:84vh;overflow:auto;}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);}
+  .modal-head h3{font-size:16px;font-weight:600;color:var(--t1);}
+  .modal-head .x{cursor:pointer;color:var(--t3);font-size:18px;}
+  .modal-body{padding:16px 20px;}
 </style>
 </head>
 <body>
@@ -159,6 +166,7 @@
 
   <div class="sidebar" id="sidebar"></div>
   <div class="main" id="main"></div>
+  <div id="modalRoot"></div>
 
 <script>
 /* ---------- 菜单 ---------- */
@@ -226,6 +234,36 @@ function switchTabPanel(el){
   const idx=[...tabs.children].filter(c=>c.classList.contains('tab')).indexOf(el);
   const card=tabs.closest('.card')||tabs.parentElement;
   card.querySelectorAll('.tab-panel').forEach((p,i)=>{p.style.display=i===idx?'':'none';});
+}
+
+/* 弹窗 */
+function openModal(title,bodyHtml,width){
+  document.getElementById('modalRoot').innerHTML=`<div class="mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal"${width?` style="width:${width}px"`:''}>
+      <div class="modal-head"><h3>${title}</h3><span class="x" onclick="closeModal()">✕</span></div>
+      <div class="modal-body">${bodyHtml}</div>
+    </div></div>`;
+}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';}
+
+/* 券发放明细（券 → 用户） */
+function openGrants(name){
+  const rows=[
+    ['张三','138****1234','已使用','gray','2026-06-01 10:12','2026-06-03 19:40'],
+    ['李四','139****5678','未使用','green','2026-06-02 14:05','—'],
+    ['王五','137****9012','已过期','gray','2026-05-20 09:30','—'],
+    ['赵六','135****3456','已使用','gray','2026-06-05 21:18','2026-06-08 12:02'],
+  ];
+  openModal(`「${name}」发放明细`,`
+    <div class="tabs"><span class="tab on" onclick="switchTab(this)">全部</span><span class="tab" onclick="switchTab(this)">未使用</span><span class="tab" onclick="switchTab(this)">已使用</span><span class="tab" onclick="switchTab(this)">已过期</span></div>
+    <table style="margin-top:12px"><thead><tr><th>用户</th><th>状态</th><th>下发时间</th><th>使用时间</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><b>${r[0]}</b> <span style="color:var(--t3)">${r[1]}</span></td>
+      <td><span class="tag ${r[3]}">${r[2]}</span></td>
+      <td style="color:var(--t2)">${r[4]}</td>
+      <td style="color:var(--t2)">${r[5]}</td>
+    </tr>`).join('')}</tbody></table>
+    ${pager(3)}`,640);
 }
 
 /* ---------- 页面 ---------- */
@@ -461,23 +499,39 @@ PAGES.coupons=()=>{
       <div class="row">类型：${c[1]}</div>
       <div class="row">有效期：${c[2]}　限领：${c[3]}</div>
       <div class="data">已发 <b>${c[4]}</b>　${c[5]}</div>
-      <div class="acts"><span class="link">编辑</span>${c[8]?'<span class="link muted">停发</span>':'<span class="link danger">删除</span>'}</div>
+      <div class="acts"><span class="link">编辑</span>${c[8]?'<span class="link muted">停发</span>':'<span class="link danger">删除</span>'}<span class="link" onclick="openGrants('${c[0]}')">发放明细 ›</span></div>
     </div>`).join('')}</div>
   </div>`;
 };
 
+function editGift(level){
+  const data={
+    silver:{name:'白银',gifts:[['新人立减5',1],['满200减20',1]]},
+    gold:{name:'黄金',gifts:[['立减10',2],['满300减50',1]]},
+  }[level];
+  const opts=['新人立减5','满100减10','满200减20','满300减50','立减10'];
+  openModal(`编辑${data.name}会员升级礼券`,`
+    <div style="color:var(--t3);font-size:13px;margin-bottom:12px">绑定「优惠券管理」中的券模版 + 张数，升级时一次性下发</div>
+    ${data.gifts.map(g=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <span style="color:var(--t2);width:56px">券模版</span>
+      <select style="flex:1;padding:6px 8px;border:1px solid #D9D9D9;border-radius:6px">${opts.map(o=>`<option${o===g[0]?' selected':''}>${o}</option>`).join('')}</select>
+      <span style="color:var(--t2)">张数</span><input value="${g[1]}" style="width:56px;padding:6px 8px;border:1px solid #D9D9D9;border-radius:6px;text-align:center">
+      <span class="link danger">删除</span></div>`).join('')}
+    <div style="margin-top:4px"><span class="link">+ 添加礼券绑定</span></div>
+    <div class="form-foot" style="margin-top:20px"><span class="btn btn-default" onclick="closeModal()">取消</span><span class="btn btn-primary" onclick="closeModal()">保存</span></div>`,520);
+}
 PAGES.marketing=()=>`
-  <div class="card-head"><h2 class="page-title">营销配置 <span class="tag gray" style="margin-left:8px">只读总览</span></h2></div>
+  <div class="card-head"><h2 class="page-title">营销配置</h2><span class="btn btn-primary">保存</span></div>
   <div class="card">
     <div class="group-title">会员等级与升级礼券</div>
-    <table><thead><tr><th>等级</th><th>升级门槛</th><th>升级礼券（绑定券模版）</th><th>当前人数</th></tr></thead>
+    <table><thead><tr><th>等级</th><th>升级门槛（累计消费）</th><th>升级礼券（绑定券模版）</th><th>当前人数</th><th>操作</th></tr></thead>
     <tbody>
-      <tr><td><span class="tag gray">普通</span></td><td>注册即享</td><td>无</td><td>198</td></tr>
-      <tr><td><span class="tag gold">🥈 白银</span></td><td>≥ 500 元</td><td>新人立减5 ×1 + 满200减20 ×1</td><td>62</td></tr>
-      <tr><td><span class="tag gold">🥇 黄金</span></td><td>≥ 1500 元</td><td>立减10 ×2 + 满300减50 ×1</td><td>26</td></tr>
+      <tr><td><span class="tag gray">普通</span></td><td>注册即享</td><td>无</td><td>198</td><td style="color:var(--t3)">—</td></tr>
+      <tr><td><span class="tag gold">🥈 白银</span></td><td>≥ <input value="500" style="width:72px;padding:4px 6px;border:1px solid #D9D9D9;border-radius:6px;text-align:center"> 元</td><td>新人立减5 ×1 + 满200减20 ×1</td><td>62</td><td><span class="link" onclick="editGift('silver')">编辑礼券</span></td></tr>
+      <tr><td><span class="tag gold">🥇 黄金</span></td><td>≥ <input value="1500" style="width:72px;padding:4px 6px;border:1px solid #D9D9D9;border-radius:6px;text-align:center"> 元</td><td>立减10 ×2 + 满300减50 ×1</td><td>26</td><td><span class="link" onclick="editGift('gold')">编辑礼券</span></td></tr>
     </tbody></table>
     <div style="margin-top:16px;padding:12px;background:var(--blue-bg);border-radius:6px;color:var(--t2);font-size:13px">
-      ⓘ 升级门槛、升级礼券绑定为策略参数，由后端配置文件（koala-business.yml）维护；升级礼券绑定<span class="link" onclick="nav('coupons')">优惠券管理</span>中的券模版。会员达累计消费门槛自动升级并一次性下发礼券，不降级；会员无下单折扣、无积分。券组合下单时系统始终自动选最优，无开关。
+      ⓘ 升级门槛为标量存 <b>sys_config:member</b>，可直接改；升级礼券绑定走 <b>member_level_gift</b> 关系表（等级×券模版×张数），引用<span class="link" onclick="nav('coupons')">优惠券管理</span>的券模版，可关联查询、外键校验。会员达累计消费门槛自动升级并一次性下发礼券，不降级；会员无下单折扣、无积分。券组合下单时系统始终自动选最优，无开关。
     </div>
   </div>`;
 
