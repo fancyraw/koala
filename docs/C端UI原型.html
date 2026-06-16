@@ -98,7 +98,8 @@
   .hscroll::-webkit-scrollbar{height:0;}
   .hot{width:130px;flex-shrink:0;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);}
   .hot .img{width:130px;height:130px;}
-  .hot .ht{position:absolute;left:6px;top:6px;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;line-height:14px;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.18);}
+  /* 商品卡图片左上角商品标签角标（后台配置：热销/新品/礼盒/特惠，单个） */
+  .ptag-tl{position:absolute;left:6px;top:6px;background:var(--red);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;line-height:14px;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.18);}
   .hot .info{padding:10px;}
   .hot .nm{font-size:13px;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
   .hot .price{font-size:18px;}
@@ -420,6 +421,9 @@ function frame(tag,inner){return `<div class="frame"><div class="tag">${tag}</di
 function frameFixed(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
 function frameRaw(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
 
+/* 商品标签角标：后台配置的单个标签（热销/新品/礼盒/特惠），无则不展示 */
+function ptagHtml(label){return label?`<span class="ptag-tl">${label}</span>`:'';}
+
 /* 优惠标签：按优先级(满减>无门槛>会员)取前 max 个整标签，多余不展示 */
 const ALL_CTAGS=[{t:'full',label:'满100减10'},{t:'noth',label:'新人立减5'},{t:'member',label:'会员9.8折'}];
 function ctagsHtml(tags,max){
@@ -428,8 +432,8 @@ function ctagsHtml(tags,max){
 }
 
 /* 商品列表瀑布流卡片 */
-function wfCard(c,h,nm,price,sold){
-  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span></div>
+function wfCard(c,h,nm,price,sold,tag){
+  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span>${ptagHtml(tag)}</div>
     <div class="info"><div class="nm">${nm}</div>
     <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><button class="addcart">+</button></div></div></div>`;
 }
@@ -437,11 +441,12 @@ function wfCard(c,h,nm,price,sold){
 /* 首页内容（可复用于弹窗背景） */
 function homeInner(){
   const cats=[['🛍️','潮流'],['☕','饮品'],['🍓','生鲜'],['🏠','家居'],['💄','美妆']];
-  const hot=[['c1','无线蓝牙耳机',88,892],['c2','保温焖烧杯',69,445],['c3','香薰礼盒',128,267]];
+  const hot=[['c1','无线蓝牙耳机',88,892,'热销'],['c2','保温焖烧杯',69,445,''],['c3','香薰礼盒',128,267,'礼盒']];
+  // rec[3] 为种草语，复用商品「产品亮点」首条（非单独录入），无亮点则不展示该行
   const rec=[
-    ['c4',200,'北欧风陶瓷餐具套装','编辑精选 · 4人食设计，简约不挑桌，宴客日常都好看',68,328],
-    ['c5',190,'纯棉针织家居服','慵懒舒适不勒身，亲肤透气，春秋居家首选款',129,86],
-    ['c1',200,'天然乳胶枕','人体工学护颈曲线，一觉到天亮，回购率超高',159,203],
+    ['c4',200,'北欧风陶瓷餐具套装','4人食设计，简约不挑桌，宴客日常都好看',68,328,'新品'],
+    ['c5',190,'纯棉针织家居服','慵懒舒适不勒身，亲肤透气，春秋居家首选款',129,86,''],
+    ['c1',200,'天然乳胶枕','人体工学护颈曲线，一觉到天亮，回购率超高',159,203,'特惠'],
   ];
   return `
     <div class="topbar"><div class="logo">K</div><div class="brand">KOALA 优选</div><div class="homecart">🛒<span class="hcb">3</span></div></div>
@@ -450,11 +455,11 @@ function homeInner(){
     <div class="cats">${cats.map(c=>`<div class="cat"><div class="cc c${Math.floor(Math.random()*6)+1}">${c[0]}</div><span>${c[1]}</span></div>`).join('')}</div>
     <div class="gap"></div>
     <div class="hot-wrap"><div class="sec"><h3>🔥 热销爆款</h3><span class="more">查看全部 ›</span></div>
-      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span><span class="ht">爆款</span></div>
+      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span>${ptagHtml(h[4])}</div>
       <div class="info"><div class="nm">${h[1]}</div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><button class="addcart">+</button></div></div></div>`).join('')}</div></div>
     <div class="gap"></div>
     <div class="white"><div class="sec"><h3>✨ 为你推荐</h3></div>
-      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span></div>
+      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span>${ptagHtml(r[6])}</div>
         <div class="info"><div class="nm">${r[2]}</div><div class="desc">${r[3]}</div>
         <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><button class="addcart">+</button></div></div></div>`).join('')}</div>
     <div class="pb"></div>`;
@@ -485,12 +490,12 @@ function popup(){
 function list(){
   const filters=['全部','潮流','饮品','生鲜','家居','美妆','零食'];
   const wf=[
-    ['c1',180,'无线蓝牙耳机 主动降噪 长续航',88,892],
-    ['c2',150,'大容量保温焖烧杯 316不锈钢',69,445],
-    ['c3',170,'手工香薰蜡烛礼盒装 母亲节',128,267],
-    ['c4',140,'北欧陶瓷餐具4人套装',68,328],
-    ['c5',190,'纯棉针织家居服套装 春秋款',129,612],
-    ['c6',160,'便携折叠收纳箱 车载家用',49,158],
+    ['c1',180,'无线蓝牙耳机 主动降噪 长续航',88,892,'热销'],
+    ['c2',150,'大容量保温焖烧杯 316不锈钢',69,445,''],
+    ['c3',170,'手工香薰蜡烛礼盒装 母亲节',128,267,'礼盒'],
+    ['c4',140,'北欧陶瓷餐具4人套装',68,328,'新品'],
+    ['c5',190,'纯棉针织家居服套装 春秋款',129,612,''],
+    ['c6',160,'便携折叠收纳箱 车载家用',49,158,'特惠'],
   ];
   const inner=`
     <div class="nav"><span class="back">‹</span><div class="searchbar"><span style="font-size:14px">🔍</span><span>搜索商品</span></div></div>
