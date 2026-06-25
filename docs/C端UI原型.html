@@ -539,51 +539,62 @@ function closeCoupon2(){var p=document.getElementById('cpop2');if(p)p.style.disp
 /* 4. 购物车 */
 function cart(){
   const items=[['c1','无线蓝牙耳机 主动降噪','尊享版',88,true],['c2','大容量保温焖烧杯','500ml 米白',69,true],['c4','北欧陶瓷餐具套装','4人食',68,false]];
-  const inner=`<div class="screen" style="padding-bottom:68px">
-    <div class="nav"><span class="ctitle">购物车</span><span class="right">管理</span></div>
+  const inner=`<div class="screen" style="padding-bottom:112px">
+    <div class="nav"><span class="ctitle">购物车</span><span class="right" style="color:var(--red);cursor:pointer" onclick="openMyCoupon()">🎫 我的优惠券</span></div>
     <div class="cart-list" style="padding-top:10px">${items.map(it=>`<div class="citem"><div class="ck ${it[4]?'on':''}">${it[4]?'✓':''}</div>
       <div class="img ${it[0]}"><span class="em">📦</span></div>
       <div class="info"><div class="nm">${it[1]}</div><span class="st">${it[2]}</span>
       <div class="bot"><span class="price"><span class="s">¥</span>${it[3]}</span>
       <div class="step"><button>−</button><span class="n">1</span><button>+</button></div></div></div></div>`).join('')}</div>
   </div>
-  <div class="cartbar" style="height:64px">
+  <div style="position:absolute;left:0;right:0;bottom:64px;background:#FFF4F4;display:flex;align-items:center;gap:6px;padding:7px 16px;cursor:pointer">
+    <span style="font-size:12px;font-weight:700;color:var(--red);flex-shrink:0;letter-spacing:.5px">凑单助手｜</span>
+    <span style="flex:1;font-size:12px;color:var(--text)">再买 <b style="color:var(--red)">¥43</b> 可省 <b style="color:var(--red)">¥20</b></span>
+    <span style="font-size:12px;color:var(--red);flex-shrink:0">去凑单 ›</span>
+  </div>
+  <div class="cartbar" style="height:64px;padding:0 14px;gap:8px">
     <div class="all" style="flex-shrink:0;white-space:nowrap"><div class="ck on">✓</div>全选</div>
-    <div style="margin-left:auto;text-align:right;margin-right:10px;flex-shrink:0">
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap">
-        <span style="font-size:13px;color:#333;white-space:nowrap">合计 <b style="font-size:18px;color:#1A1A1A">¥142.00</b></span>
+    <div style="flex:1;min-width:0;text-align:right">
+      <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:8px;white-space:nowrap">
+        <span style="font-size:13px;color:#333">合计 <b style="font-size:18px;color:#1A1A1A">¥142.00</b></span>
         <span style="color:var(--red);font-size:13px;cursor:pointer" onclick="openDetail()">已省 ¥15 ›</span></div>
       <div style="font-size:11px;color:var(--sub);margin-top:2px;white-space:nowrap;text-align:right">免运费</div>
     </div>
-    <button class="btn btn-red" style="height:40px;padding:0 18px;flex-shrink:0;white-space:nowrap">结算(2)</button>
+    <button class="btn btn-red" style="height:40px;padding:0 20px;flex-shrink:0;white-space:nowrap">结算(2)</button>
   </div>
   <div id="cdetail" style="display:none;position:absolute;inset:0;z-index:49">
     <div onclick="closeDetail()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
     <div style="position:absolute;left:0;right:0;bottom:64px;background:#fff;border-radius:16px 16px 0 0;padding:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;color:var(--title);margin-bottom:4px"><span>费用明细</span><span onclick="closeDetail()" style="color:var(--sub);font-weight:400;cursor:pointer">✕</span></div>
       <div style="display:flex;justify-content:space-between;padding:11px 0;font-size:14px;color:#333"><span>商品合计</span><span>¥157.00</span></div>
-      <div style="display:flex;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);font-size:14px;color:#333"><span>优惠券</span><span><span style="color:var(--red);font-weight:600">-¥15.00</span> <span style="color:var(--red);font-size:12px;cursor:pointer" onclick="closeDetail();openCoupon()">修改 ›</span></span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);font-size:14px;color:#333"><span>优惠券（系统已选最优）</span><span style="color:var(--red);font-weight:600">-¥15.00</span></div>
       <div style="display:flex;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);font-size:14px;color:#333"><span>运费</span><span style="color:var(--sub)">¥0.00（免运费）</span></div>
       <div style="display:flex;justify-content:space-between;padding:12px 0 2px;border-top:1px solid var(--line)"><span style="font-weight:600;color:var(--title);font-size:14px">合计</span><span class="price" style="font-size:18px"><span class="s">¥</span>142.00</span></div>
     </div>
   </div>
-  <div id="cpop" style="display:none;position:absolute;inset:0;z-index:50">
-    <div onclick="closeCoupon()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
-    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:16px 16px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;color:var(--title);margin-bottom:4px"><span>已选用券</span><span onclick="closeCoupon()" style="color:var(--red);font-weight:400;cursor:pointer">完成</span></div>
-      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line)">
-        <span class="ck on" style="align-self:center">✓</span>
-        <span style="flex:1;font-size:14px;color:var(--title)">新人5元券 · 无门槛</span><span style="color:var(--red);font-weight:600">-¥5.00</span></div>
-      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line)">
-        <span class="radio on"></span><span style="flex:1;font-size:14px;color:var(--title)">满100减10</span><span style="color:var(--red);font-weight:600">-¥10.00</span></div>
-      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line);opacity:.55">
-        <span class="radio"></span><span style="flex:1;font-size:14px;color:var(--title)">满200减30 <small style="color:var(--sub);font-size:11px">· 再凑 ¥43 可用</small></span><span style="color:var(--sub);font-size:13px">差 ¥43</span></div>
+  <div id="cmycoupon" style="display:none;position:absolute;inset:0;z-index:50">
+    <div onclick="closeMyCoupon()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#F8F8F8;border-radius:16px 16px 0 0;padding:16px 12px 24px;max-height:70%;overflow:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;color:var(--title);margin-bottom:10px;padding:0 4px"><span>我的优惠券</span><span onclick="closeMyCoupon()" style="color:var(--sub);font-weight:400;cursor:pointer">✕</span></div>
+      <div style="font-size:12px;color:var(--sub);margin:0 4px 6px">可用（2）</div>
+      ${[['5','无门槛','新人专享券','有效期至 2026.06.30',true],['10','满100可用','满减优惠券','有效期至 2026.06.20',true]].map(c=>myCouponCard(c)).join('')}
+      <div style="font-size:12px;color:var(--sub);margin:12px 4px 6px">已过期（1）</div>
+      ${[['20','满200可用','满减优惠券','已过期',false]].map(c=>myCouponCard(c)).join('')}
     </div>
   </div>`;
   return frameFixed('购物车页',inner);
 }
-function openCoupon(){var p=document.getElementById('cpop');if(p)p.style.display='block';}
-function closeCoupon(){var p=document.getElementById('cpop');if(p)p.style.display='none';}
+function myCouponCard(c){
+  var on=c[4];
+  return `<div style="display:flex;background:#fff;border-radius:12px;overflow:hidden;margin:0 0 10px;${on?'':'opacity:.5'}">
+    <div style="width:96px;background:${on?'linear-gradient(135deg,#FF6B6B,#FF2442)':'#BDBDBD'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 0">
+      <div style="font-size:24px;font-weight:800">¥${c[0]}</div><div style="font-size:10px;margin-top:2px">${c[1]}</div></div>
+    <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:14px;font-weight:600;color:var(--title)">${c[2]}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:6px">${c[3]}</div></div></div>`;
+}
+function openMyCoupon(){var p=document.getElementById('cmycoupon');if(p)p.style.display='block';}
+function closeMyCoupon(){var p=document.getElementById('cmycoupon');if(p)p.style.display='none';}
 function openDetail(){var p=document.getElementById('cdetail');if(p)p.style.display='block';}
 function closeDetail(){var p=document.getElementById('cdetail');if(p)p.style.display='none';}
 
@@ -896,7 +907,7 @@ function cartInvalid(){
   const items=[['c1','无线蓝牙耳机 主动降噪','尊享版',88,true],['c2','大容量保温焖烧杯','500ml 米白',69,true]];
   const invalid=[['c6','便携折叠收纳箱','车载家用',49]];
   const inner=`<div class="screen" style="padding-bottom:68px">
-    <div class="nav"><span class="ctitle">购物车</span><span class="right">管理</span></div>
+    <div class="nav"><span class="ctitle">购物车</span><span class="right" style="color:var(--red)">🎫 我的优惠券</span></div>
     <div class="cart-list" style="padding-top:10px">
       ${items.map(it=>`<div class="citem"><div class="ck ${it[4]?'on':''}">${it[4]?'✓':''}</div>
         <div class="img ${it[0]}"><span class="em">📦</span></div>
