@@ -292,20 +292,13 @@
   .odbar{position:absolute;bottom:0;left:0;right:0;height:60px;background:#fff;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 14px;box-shadow:0 -1px 10px rgba(0,0,0,.05);}
   .odbar .btn{height:36px;padding:0 20px;font-size:14px;}
 
-  /* 个人中心：会员头部卡 */
-  .mhead{background:linear-gradient(135deg,var(--gold1),var(--gold2));border-radius:16px;margin:12px;padding:18px;color:#fff;box-shadow:0 6px 16px rgba(201,162,75,.25);}
+  /* 个人中心：用户头部卡（无会员体系） */
+  .mhead{background:#fff;border-radius:16px;margin:12px;padding:18px;color:var(--title);}
   .mhead .row1{display:flex;align-items:center;gap:14px;}
-  .mhead .av{width:56px;height:56px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--gold2);background:#fff;flex-shrink:0;}
+  .mhead .av{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#fff;background:linear-gradient(135deg,#FF8A8A,var(--red));flex-shrink:0;}
   .mhead .ui{flex:1;}
-  .mhead .name{font-size:18px;font-weight:600;display:flex;align-items:center;}
-  .mhead .mbadge{background:rgba(255,255,255,.28);font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;margin-left:8px;}
-  .mhead .edit{font-size:12px;opacity:.9;margin-top:5px;}
-  .mhead .view{font-size:12px;opacity:.95;}
-  .mhead .prog{height:5px;background:rgba(255,255,255,.32);border-radius:999px;margin:14px 0 6px;overflow:hidden;}
-  .mhead .prog i{display:block;height:100%;width:60%;background:#fff;border-radius:999px;}
-  .mhead .ptxt{font-size:11px;opacity:.95;}
-  .mhead .rights{display:flex;gap:8px;margin-top:11px;}
-  .mhead .r{background:rgba(255,255,255,.25);font-size:11px;padding:3px 10px;border-radius:999px;}
+  .mhead .name{font-size:17px;font-weight:600;color:var(--title);}
+  .mhead .edit{font-size:12px;color:var(--sub);margin-top:5px;}
   .assets{display:flex;background:#fff;border-radius:16px;margin:0 12px;}
   .asset{flex:1;text-align:center;padding:16px 0;}
   .asset + .asset{border-left:1px solid var(--line);}
@@ -412,20 +405,23 @@ function tabbar(active){
     {k:'cart',l:'购物车',b:3,p:'<path d="M3 4h2l2.4 12.4a2 2 0 002 1.6h7.7a2 2 0 002-1.6L22 8H6" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="21" r="1.2" stroke-width="1.8"/><circle cx="18" cy="21" r="1.2" stroke-width="1.8"/>'},
     {k:'me',l:'我的',p:'<circle cx="12" cy="8" r="4" fill="none" stroke-width="1.8"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" fill="none" stroke-width="1.8" stroke-linecap="round"/>'},
   ];
-  return `<div class="tabbar">${tabs.map(t=>`<div class="tab ${t.k===active?'on':''}">
+  const dest={home:'p-home',find:'p-list',cart:'p-cart',me:'p-profile'};
+  return `<div class="tabbar">${tabs.map(t=>`<div class="tab ${t.k===active?'on':''}" style="cursor:pointer" onclick="go('${dest[t.k]}')">
     ${t.b?`<span class="badge">${t.b}</span>`:''}
     <svg width="24" height="24" viewBox="0 0 24 24" stroke="#C8C8C8" fill="none">${t.p}</svg>
     <span>${t.l}</span></div>`).join('')}</div>`;
 }
-function frame(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}<div class="screen">${inner}</div></div></div>`;}
-function frameFixed(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
-function frameRaw(tag,inner){return `<div class="frame"><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
+function frame(tag,inner,id){return `<div class="frame"${id?` id="${id}"`:''}><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}<div class="screen">${inner}</div></div></div>`;}
+function frameFixed(tag,inner,id){return `<div class="frame"${id?` id="${id}"`:''}><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
+function frameRaw(tag,inner,id){return `<div class="frame"${id?` id="${id}"`:''}><div class="tag">${tag}</div><div class="phone">${notch()}${sb()}${inner}</div></div>`;}
+function go(id){var el=document.getElementById(id);if(el){el.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});var p=el.querySelector('.phone');if(p){p.style.transition='box-shadow .3s';var o=p.style.boxShadow;p.style.boxShadow='0 0 0 4px var(--red),0 18px 50px rgba(0,0,0,.2)';setTimeout(function(){p.style.boxShadow=o;},900);}}}
+function toast(msg){var t=document.createElement('div');t.textContent=msg;t.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;z-index:9999;';document.body.appendChild(t);setTimeout(function(){t.remove();},1400);}
 
 /* 商品标签角标：后台配置的单个标签（热销/新品/礼盒/特惠），无则不展示 */
 function ptagHtml(label){return label?`<span class="ptag-tl">${label}</span>`:'';}
 
-/* 优惠标签：按优先级(满减>无门槛>会员)取前 max 个整标签，多余不展示 */
-const ALL_CTAGS=[{t:'full',label:'满100减10'},{t:'noth',label:'新人立减5'},{t:'member',label:'会员9.8折'}];
+/* 优惠标签：按优先级(满减>无门槛)取前 max 个整标签，多余不展示 */
+const ALL_CTAGS=[{t:'full',label:'满100减10'},{t:'noth',label:'新人立减5'}];
 function ctagsHtml(tags,max){
   const order={full:0,noth:1,member:2},cls={full:'red',noth:'orange',member:'gold'};
   return `<div class="ctags">${[...tags].sort((a,b)=>order[a.t]-order[b.t]).slice(0,max).map(x=>`<span class="ctag ${cls[x.t]}">${x.label}</span>`).join('')}</div>`;
@@ -433,9 +429,9 @@ function ctagsHtml(tags,max){
 
 /* 商品列表瀑布流卡片 */
 function wfCard(c,h,nm,price,sold,tag){
-  return `<div class="wf"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span>${ptagHtml(tag)}</div>
+  return `<div class="wf" style="cursor:pointer" onclick="go('p-detail')"><div class="img ${c}" style="height:${h}px"><span class="em">🛍️</span>${ptagHtml(tag)}</div>
     <div class="info"><div class="nm">${nm}</div>
-    <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><button class="addcart">+</button></div></div></div>`;
+    <div class="pr"><span class="price"><span class="s">¥</span>${price}</span><button class="addcart" onclick="event.stopPropagation();toast('已加入购物车')">+</button></div></div></div>`;
 }
 
 /* 首页内容（可复用于弹窗背景） */
@@ -449,25 +445,25 @@ function homeInner(){
     ['c1',200,'天然乳胶枕','人体工学护颈曲线，一觉到天亮，回购率超高',159,203,'特惠'],
   ];
   return `
-    <div class="topbar"><div class="logo">K</div><div class="brand">KOALA 优选</div><div class="homecart">🛒<span class="hcb">3</span></div></div>
-    <div class="banner"><div class="b img c7"><span class="em">🛒</span>
+    <div class="topbar"><div class="logo">K</div><div class="brand">KOALA 优选</div><div class="homecart" style="cursor:pointer" onclick="go('p-cart')">🛒<span class="hcb">3</span></div></div>
+    <div class="banner" onclick="go('p-list')" style="cursor:pointer"><div class="b img c7"><span class="em">🛒</span>
       <div class="dots"><i class="on"></i><i></i><i></i></div></div></div>
-    <div class="cats">${cats.map(c=>`<div class="cat"><div class="cc c${Math.floor(Math.random()*6)+1}">${c[0]}</div><span>${c[1]}</span></div>`).join('')}</div>
+    <div class="cats">${cats.map(c=>`<div class="cat" style="cursor:pointer" onclick="go('p-list')"><div class="cc c${Math.floor(Math.random()*6)+1}">${c[0]}</div><span>${c[1]}</span></div>`).join('')}</div>
     <div class="gap"></div>
-    <div class="hot-wrap"><div class="sec"><h3>🔥 热销爆款</h3><span class="more">查看全部 ›</span></div>
-      <div class="hscroll">${hot.map(h=>`<div class="hot"><div class="img ${h[0]}"><span class="em">📦</span>${ptagHtml(h[4])}</div>
-      <div class="info"><div class="nm">${h[1]}</div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><button class="addcart">+</button></div></div></div>`).join('')}</div></div>
+    <div class="hot-wrap"><div class="sec"><h3>🔥 热销爆款</h3><span class="more" style="cursor:pointer" onclick="go('p-list')">查看全部 ›</span></div>
+      <div class="hscroll">${hot.map(h=>`<div class="hot" style="cursor:pointer" onclick="go('p-detail')"><div class="img ${h[0]}"><span class="em">📦</span>${ptagHtml(h[4])}</div>
+      <div class="info"><div class="nm">${h[1]}</div><div class="hpr"><span class="price"><span class="s">¥</span>${h[2]}</span><button class="addcart" onclick="event.stopPropagation();toast('已加入购物车')">+</button></div></div></div>`).join('')}</div></div>
     <div class="gap"></div>
     <div class="white"><div class="sec"><h3>✨ 为你推荐</h3></div>
-      ${rec.map(r=>`<div class="rec"><div class="img ${r[0]}"><span class="em">🖼️</span>${ptagHtml(r[6])}</div>
+      ${rec.map(r=>`<div class="rec" style="cursor:pointer" onclick="go('p-detail')"><div class="img ${r[0]}"><span class="em">🖼️</span>${ptagHtml(r[6])}</div>
         <div class="info"><div class="nm">${r[2]}</div><div class="desc">${r[3]}</div>
-        <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><button class="addcart">+</button></div></div></div>`).join('')}</div>
+        <div class="foot"><span class="price"><span class="s">¥</span>${r[4]}</span><button class="addcart" onclick="event.stopPropagation();toast('已加入购物车')">+</button></div></div></div>`).join('')}</div>
     <div class="pb"></div>`;
 }
 
 /* 1. 首页 */
 function home(){
-  return frameFixed('首页',`<div class="screen">${homeInner()}</div>${tabbar('home')}`);
+  return frameFixed('首页',`<div class="screen">${homeInner()}</div>${tabbar('home')}`,'p-home');
 }
 
 /* 1b. 新人券弹窗 */
@@ -502,7 +498,7 @@ function list(){
     <div class="filters">${filters.map((f,i)=>`<span class="f ${i===0?'on':''}">${f}</span>`).join('')}</div>
     <div class="gap"></div>
     <div class="waterfall" style="padding-top:8px">${wf.map(w=>wfCard(...w)).join('')}</div>`;
-  return frame('商品列表页',inner);
+  return frame('商品列表页',inner,'p-list');
 }
 
 /* 3. 商品详情 */
@@ -529,9 +525,9 @@ function detail(){
     <div class="dblock"><h4>商品详情</h4><div class="img c3" style="height:170px;border-radius:12px"><span class="em">🖼️</span></div></div>
   </div>
   <div class="dbar">
-    <div class="ico"><span class="e">🎧</span>客服</div>
-    <button class="btn btn-redsoft">加入购物车</button><button class="btn btn-red">立即购买</button></div>`;
-  return frameFixed('商品详情页',inner);
+    <div class="ico" style="cursor:pointer" onclick="toast('正在接入微信客服…')"><span class="e">🎧</span>客服</div>
+    <button class="btn btn-redsoft" onclick="toast('已加入购物车')">加入购物车</button><button class="btn btn-red" onclick="go('p-confirm')">立即购买</button></div>`;
+  return frameFixed('商品详情页',inner,'p-detail');
 }
 function openCoupon2(){var p=document.getElementById('cpop2');if(p)p.style.display='block';}
 function closeCoupon2(){var p=document.getElementById('cpop2');if(p)p.style.display='none';}
@@ -560,7 +556,7 @@ function cart(){
         <span style="color:var(--red);font-size:13px;cursor:pointer" onclick="openDetail()">已省 ¥15 ›</span></div>
       <div style="font-size:11px;color:var(--sub);margin-top:2px;white-space:nowrap;text-align:right">免运费</div>
     </div>
-    <button class="btn btn-red" style="height:40px;padding:0 20px;flex-shrink:0;white-space:nowrap">结算(2)</button>
+    <button class="btn btn-red" style="height:40px;padding:0 20px;flex-shrink:0;white-space:nowrap" onclick="go('p-confirm')">结算(2)</button>
   </div>
   <div id="cdetail" style="display:none;position:absolute;inset:0;z-index:49">
     <div onclick="closeDetail()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
@@ -582,7 +578,7 @@ function cart(){
       ${[['20','满200可用','满减优惠券','已过期',false]].map(c=>myCouponCard(c)).join('')}
     </div>
   </div>`;
-  return frameFixed('购物车页',inner);
+  return frameFixed('购物车页',inner,'p-cart');
 }
 function myCouponCard(c){
   var on=c[4];
@@ -619,8 +615,8 @@ function confirm(){
       <div class="frow"><span class="lab">运费</span><span class="val">¥0.00</span></div></div>
     <div class="pb" style="height:20px"></div>
   </div>
-  <div class="subbar"><div class="tot">合计 <b>¥142.00</b><div class="sm">已省 ¥15.00</div></div><button class="btn btn-red">提交订单</button></div>`;
-  return frameFixed('确认订单页',inner);
+  <div class="subbar"><div class="tot">合计 <b>¥142.00</b><div class="sm">已省 ¥15.00</div></div><button class="btn btn-red" onclick="go('p-pay')">提交订单</button></div>`;
+  return frameFixed('确认订单页',inner,'p-confirm');
 }
 
 /* 6. 支付结果 */
@@ -628,21 +624,21 @@ function pay(){
   const inner=`<div class="screen">
     <div class="pay"><div class="icon">✓</div><div class="t">支付成功</div><div class="amt">¥142.00</div>
       <div class="save">已为你节省 ¥15.00</div>
-      <div class="btns"><button class="btn btn-red">查看订单</button><button class="btn btn-soft">返回首页</button></div></div>
+      <div class="btns"><button class="btn btn-red" onclick="go('p-orderdetail')">查看订单</button><button class="btn btn-soft" onclick="go('p-home')">返回首页</button></div></div>
   </div>`;
-  return frame('支付结果页',inner);
+  return frame('支付结果页',inner,'p-pay');
 }
 
 /* 7. 订单详情 */
 function orderDetail(){
-  const logs=[
-    ['运输中：快件已到达【上海浦东转运中心】','06-12 14:30',true],
-    ['快件已从【杭州集散中心】发出','06-12 09:10',false],
-    ['商家已发货，等待揽收','06-11 18:00',false],
-  ];
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="nav"><span class="back">‹</span><span class="ctitle">订单详情</span></div>
-    <div class="ostatus" onclick="openLogi()" style="cursor:pointer"><div class="l"><div class="s">配送中</div><div class="d">最新：快件已到达【上海浦东转运中心】 ›</div></div><span class="ill">🚚</span></div>
+    <div class="ostatus"><div class="l"><div class="s">配送中</div><div class="d">商品已发出，请耐心等待签收</div></div><span class="ill">🚚</span></div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:14px 16px" onclick="go('p-logistics')">
+      <span style="font-size:22px;flex-shrink:0">🚚</span>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">运输中：快件已到达【上海浦东转运中心】，准备派送</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:3px">06-12 14:30</div></div>
+      <span style="color:var(--red);font-size:12px;flex-shrink:0">查看全部 ›</span></div>
     <div class="card addr"><span class="pin">📍</span><div class="ai"><div class="l1"><b>阿吉</b>138****8888</div>
       <div class="l2">上海市黄浦区马当路388号 SOHO复兴广场</div></div></div>
     <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
@@ -662,20 +658,9 @@ function orderDetail(){
       <div class="irow"><span class="lab">支付方式</span><span class="val">微信支付</span></div></div>
     <div class="pb" style="height:20px"></div>
   </div>
-  <div class="odbar"><button class="btn btn-soft" onclick="openLogi()">查看物流</button><button class="btn btn-red">确认收货</button></div>
-  <div class="logipop" id="logiPop" style="display:none">
-    <div class="logimask" onclick="closeLogi()"></div>
-    <div class="logicard">
-      <div class="logihead"><span>物流信息</span><span onclick="closeLogi()" style="cursor:pointer;color:#999;font-weight:400">✕</span></div>
-      <div class="logico">圆通速递 · 运单号 YT2026061200888 <span class="copy">复制</span></div>
-      <div class="timeline">${logs.map(l=>`<div class="tl ${l[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
-        <div class="c"><div class="desc">${l[0]}</div><div class="time">${l[1]}</div></div></div>`).join('')}</div>
-    </div>
-  </div>`;
-  return frameFixed('订单详情页',inner);
+  <div class="odbar"><button class="btn btn-soft" onclick="go('p-applysale')">申请售后</button><button class="btn btn-red" onclick="toast('确认收货成功')">确认收货</button></div>`;
+  return frameFixed('订单详情页·待收货',inner,'p-orderdetail');
 }
-function openLogi(){var p=document.getElementById('logiPop');if(p)p.style.display='block';}
-function closeLogi(){var p=document.getElementById('logiPop');if(p)p.style.display='none';}
 
 /* 7b. 订单详情·待发货状态 */
 function orderShipping(){
@@ -701,24 +686,17 @@ function orderShipping(){
       <div class="irow"><span class="lab">支付方式</span><span class="val">微信支付</span></div></div>
     <div class="pb" style="height:20px"></div>
   </div>
-  <div class="odbar"><button class="btn btn-soft">申请退款</button><button class="btn btn-soft">提醒发货</button></div>`;
-  return frameFixed('订单详情·待发货',inner);
+  <div class="odbar"><button class="btn btn-soft" onclick="go('p-applysale')">申请退款</button><button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button></div>`;
+  return frameFixed('订单详情·待发货',inner,'p-shipping');
 }
 
-/* 7c. 订单详情·售后进度（退货退款） */
-function orderAfterSale(){
-  const steps=[
-    ['提交退款申请','06-12 10:00',true],
-    ['商家审核通过','06-12 11:30',true],
-    ['买家寄回 · 待填写寄回单号','进行中',true],
-    ['商家确认收货','待处理',false],
-    ['退款完成 · 原路退回 ¥142.00','待退款',false],
-  ];
+/* 7c. 订单详情·售后进度（参数化：退货退款 / 仅退款审核中 / 退款成功） */
+function afterSalePage(cfg){
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="nav"><span class="back">‹</span><span class="ctitle">退款/售后</span></div>
-    <div class="ostatus"><div class="l"><div class="s">退款处理中</div><div class="d">请尽快寄回商品并填写快递单号</div></div><span class="ill">↩️</span></div>
-    <div class="tlcard"><div class="h"><span class="t">售后进度</span><span class="more">退货退款</span></div>
-      <div class="timeline">${steps.map(s=>`<div class="tl ${s[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
+    <div class="ostatus"><div class="l"><div class="s">${cfg.status}</div><div class="d">${cfg.statusDesc}</div></div><span class="ill">${cfg.ill}</span></div>
+    <div class="tlcard"><div class="h"><span class="t">售后进度</span><span class="more">${cfg.type}</span></div>
+      <div class="timeline">${cfg.steps.map(s=>`<div class="tl ${s[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
         <div class="c"><div class="desc">${s[0]}</div><div class="time">${s[1]}</div></div></div>`).join('')}</div></div>
     <div class="card"><div class="oitem"><div class="img c1"><span class="em">🎧</span></div>
       <div class="info"><div class="nm">无线蓝牙耳机 主动降噪</div><span class="st">尊享版</span></div>
@@ -732,33 +710,93 @@ function orderAfterSale(){
       <div class="frow"><span class="lab">申请单号</span><span class="val">RF2026061200888<span class="copy">复制</span></span></div></div>
     <div class="pb" style="height:20px"></div>
   </div>
-  <div class="odbar"><button class="btn btn-soft">联系客服</button><button class="btn btn-red">填写寄回单号</button></div>`;
-  return frameFixed('订单详情·售后进度',inner);
+  <div class="odbar">${cfg.acts}</div>`;
+  return frameFixed(cfg.tag,inner,cfg.id);
+}
+/* 退货退款·寄回中 */
+function orderAfterSale(){
+  return afterSalePage({
+    id:'p-aftersale',tag:'订单详情·售后进度（退货退款）',type:'退货退款',ill:'↩️',
+    status:'退款处理中',statusDesc:'请尽快寄回商品并填写快递单号',
+    steps:[
+      ['提交退款申请','06-12 10:00',true],
+      ['商家审核通过','06-12 11:30',true],
+      ['买家寄回 · 待填写寄回单号','进行中',true],
+      ['商家确认收货','待处理',false],
+      ['退款完成 · 原路退回 ¥142.00','待退款',false],
+    ],
+    acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button><button class="btn btn-red" onclick="toast('请填写寄回快递单号')">填写寄回单号</button>`,
+  });
+}
+/* 仅退款·退款审核中 */
+function afterSaleReviewing(){
+  return afterSalePage({
+    id:'p-aftersale-review',tag:'订单详情·退款审核中（仅退款）',type:'仅退款',ill:'⏳',
+    status:'退款审核中',statusDesc:'商家将在 48 小时内处理，请耐心等待',
+    steps:[
+      ['提交退款申请','06-12 10:00',true],
+      ['商家审核中','进行中',true],
+      ['退款完成 · 原路退回 ¥142.00','待退款',false],
+    ],
+    acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button><button class="btn btn-soft" onclick="toast('已撤销退款申请')">撤销申请</button>`,
+  });
+}
+/* 仅退款·退款成功 */
+function afterSaleDone(){
+  return afterSalePage({
+    id:'p-aftersale-done',tag:'订单详情·退款成功（仅退款）',type:'仅退款',ill:'✅',
+    status:'退款成功',statusDesc:'¥142.00 已原路退回，未过期券已返还',
+    steps:[
+      ['提交退款申请','06-12 10:00',true],
+      ['商家审核通过','06-12 11:30',true],
+      ['退款完成 · 原路退回 ¥142.00','06-12 11:35',true],
+    ],
+    acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button><button class="btn btn-soft" onclick="toast('订单已删除')">返回订单</button>`,
+  });
 }
 
-/* 8. 订单列表 */
+/* 8. 订单列表（全部状态） */
+const ACT_NAV={
+  '去支付':"go('p-confirm')",
+  '取消订单':"toast('订单已取消')",
+  '申请退款':"go('p-applysale')",
+  '联系客服':"toast('正在接入微信客服…')",
+  '查看物流':"go('p-logistics')",
+  '申请售后':"go('p-applysale')",
+  '确认收货':"toast('确认收货成功')",
+  '查看售后进度':"go('p-aftersale')",
+  '填写寄回单号':"toast('请填写寄回快递单号')",
+  '撤销申请':"toast('已撤销退款申请')",
+  '再次购买':"go('p-cart')",
+  '删除订单':"toast('订单已删除')",
+};
 function orderList(){
   const tabs=['全部','待付款','待发货','待收货','退款售后','已完成'];
+  // st:状态文案 stc:状态色 nav:点击卡片跳转的详情页
   const orders=[
-    {no:'2026061200888',st:'待付款',stc:'red',countdown:'29:59',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['取消订单','soft'],['去支付','red']]},
-    {no:'2026061200999',st:'待发货',stc:'dark',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'129.00',acts:[['申请退款','soft'],['提醒发货','soft']]},
-    {no:'2026061100776',st:'待收货',stc:'dark',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'137.00',acts:[['申请退货退款','soft'],['查看物流','soft'],['确认收货','red']]},
-    {no:'2026060800521',st:'交易完成',stc:'gray',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['申请售后','soft'],['删除订单','soft'],['再次购买','red']]},
+    {no:'2026061200888',st:'待付款',stc:'red',countdown:'29:59',nav:'p-shipping',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['取消订单','soft'],['去支付','red']]},
+    {no:'2026061200999',st:'待发货',stc:'dark',nav:'p-shipping',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'129.00',acts:[['申请退款','soft'],['联系客服','soft']]},
+    {no:'2026061100776',st:'待收货',stc:'dark',nav:'p-orderdetail',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'137.00',acts:[['查看物流','soft'],['申请售后','soft'],['确认收货','red']]},
+    {no:'2026061000312',st:'退款售后 · 退货退款',stc:'red',nav:'p-aftersale',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88],['c2','🥤','大容量保温焖烧杯','500ml 米白',69]],pay:'142.00',acts:[['查看售后进度','soft'],['填写寄回单号','red']]},
+    {no:'2026061000266',st:'退款审核中',stc:'red',nav:'p-aftersale-review',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'129.00',acts:[['联系客服','soft'],['撤销申请','soft']]},
+    {no:'2026060900155',st:'退款成功',stc:'gray',nav:'p-aftersale-done',items:[['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'68.00',acts:[['删除订单','soft']]},
+    {no:'2026060800521',st:'已完成',stc:'gray',nav:'p-orderdetail',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['删除订单','soft'],['再次购买','red']]},
+    {no:'2026060500108',st:'已取消',stc:'gray',nav:'p-shipping',items:[['c6','📦','便携折叠收纳箱','车载家用',49]],pay:'49.00',acts:[['删除订单','soft']]},
   ];
   const inner=`
     <div class="nav"><span class="back">‹</span><span class="ctitle">我的订单</span></div>
     <div class="otabs">${tabs.map((t,i)=>`<span class="t ${i===0?'on':''}">${t}</span>`).join('')}</div>
     <div class="gap"></div>
     ${orders.map(o=>`<div class="ocard">
-      <div class="ohead"><span class="ono">订单号 ${o.no}</span><span class="ost ${o.stc}">${o.st}${o.countdown?` <span style="color:var(--red);font-size:12px;font-weight:400">${o.countdown}</span>`:''}</span></div>
-      ${o.items.map(it=>`<div class="oitem" style="margin-bottom:10px"><div class="img ${it[0]}"><span class="em">${it[1]}</span></div>
+      <div class="ohead" onclick="${o.nav?`go('${o.nav}')`:''}" style="cursor:pointer"><span class="ono">订单号 ${o.no}</span><span class="ost ${o.stc}">${o.st}${o.countdown?` <span style="color:var(--red);font-size:12px;font-weight:400">${o.countdown}</span>`:''}</span></div>
+      ${o.items.map(it=>`<div class="oitem" onclick="${o.nav?`go('${o.nav}')`:''}" style="margin-bottom:10px;cursor:pointer"><div class="img ${it[0]}"><span class="em">${it[1]}</span></div>
         <div class="info"><div class="nm">${it[2]}</div><span class="st">${it[3]}</span></div>
         <div class="rt"><div class="price"><span class="s">¥</span>${it[4]}</div><div class="q">x1</div></div></div>`).join('')}
       <div class="opay">共 ${o.items.length} 件，实付 <b>¥${o.pay}</b></div>
-      <div class="oact">${o.acts.map(a=>`<button class="btn btn-${a[1]}">${a[0]}</button>`).join('')}</div>
+      <div class="oact">${o.acts.map(a=>`<button class="btn btn-${a[1]}" onclick="${ACT_NAV[a[0]]||''}">${a[0]}</button>`).join('')}</div>
     </div>`).join('')}
     <div class="pb"></div>`;
-  return frame('订单列表页',inner);
+  return frame('订单列表页（全部状态）',inner,'p-orderlist');
 }
 
 /* 9. 个人中心 */
@@ -768,17 +806,13 @@ function profile(){
   const inner=`<div class="screen" style="padding-bottom:60px">
     <div class="mhead">
       <div class="row1"><div class="av">阿</div>
-        <div class="ui"><div class="name">阿吉<span class="mbadge">🥈 白银会员</span></div><div class="edit">编辑资料 ›</div></div>
-        <div class="view">查看权益 ›</div></div>
-      <div class="prog"><i></i></div>
-      <div class="ptxt">再消费 ¥700 升黄金会员</div>
-      <div class="rights"><span class="r">🎁 升级送礼券</span></div></div>
-    <div class="myorder" style="padding-bottom:16px"><div class="sec" style="padding-bottom:0"><h3 style="font-size:15px">我的订单</h3><span class="more">全部 ›</span></div>
-      <div class="ordericons">${orders.map(o=>`<div class="oi">${o[2]?'<span class="dot"></span>':''}<span class="e">${o[0]}</span><span>${o[1]}</span></div>`).join('')}</div></div>
-    <div class="menu">${menus.map(m=>`<div class="mrow"><span class="e">${m[0]}</span>${m[1]}<span class="a">${m[2]?m[2]+' ›':'›'}</span></div>`).join('')}</div>
+        <div class="ui"><div class="name">阿吉</div><div class="edit">编辑资料 ›</div></div></div></div>
+    <div class="myorder" style="padding-bottom:16px"><div class="sec" style="padding-bottom:0"><h3 style="font-size:15px">我的订单</h3><span class="more" style="cursor:pointer" onclick="go('p-orderlist')">全部 ›</span></div>
+      <div class="ordericons">${orders.map(o=>`<div class="oi" style="cursor:pointer" onclick="go('p-orderlist')">${o[2]?'<span class="dot"></span>':''}<span class="e">${o[0]}</span><span>${o[1]}</span></div>`).join('')}</div></div>
+    <div class="menu">${menus.map(m=>`<div class="mrow"${m[1]==='我的优惠券'?' style="cursor:pointer" onclick="go(\'p-coupon\')"':''}><span class="e">${m[0]}</span>${m[1]}<span class="a">${m[2]?m[2]+' ›':'›'}</span></div>`).join('')}</div>
     <div class="pb"></div>
   </div>${tabbar('me')}`;
-  return frameFixed('个人中心页',inner);
+  return frameFixed('个人中心页',inner,'p-profile');
 }
 
 /* 10. 我的优惠券 */
@@ -787,7 +821,7 @@ function couponPage(){
   const cps=[
     ['5','无门槛','新人专享券','有效期至 2026.06.14',false,'仅剩 5时30分'],
     ['10','满100可用','满减优惠券','有效期至 2026.06.20',false],
-    ['20','满200可用','会员尊享券','有效期至 2026.07.15',false],
+    ['20','满200可用','满减优惠券','有效期至 2026.07.15',false],
     ['8','满80可用','美妆品类券','使用于 2026.05.30',true],
   ];
   const inner=`
@@ -800,7 +834,40 @@ function couponPage(){
         <span class="cuse">${c[4]?'已使用':'去使用'}</span></div>
     </div>`).join('')}
     <div class="pb"></div>`;
-  return frame('我的优惠券页',inner);
+  return frame('我的优惠券页',inner,'p-coupon');
+}
+
+/* 11. 物流详情页 */
+function logisticsDetail(){
+  const logs=[
+    ['运输中：快件已到达【上海浦东转运中心】，准备派送','06-12 14:30',true],
+    ['运输中：快件已从【杭州集散中心】发出','06-12 09:10',false],
+    ['运输中：快件已到达【杭州集散中心】','06-12 06:40',false],
+    ['已揽收：快件已被圆通速递揽收','06-11 18:30',false],
+    ['商家已发货，等待揽收','06-11 18:00',false],
+    ['商家已确认订单，正在备货','06-11 17:20',false],
+  ];
+  const inner=`<div class="screen">
+    <div class="nav"><span class="back">‹</span><span class="ctitle">物流详情</span></div>
+    <div class="card" style="margin-top:0;border-radius:0;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-size:15px;font-weight:600;color:var(--title)">圆通速递</div>
+          <div style="font-size:13px;color:var(--sub);margin-top:4px">运单号 YT2026061200888 <span style="color:var(--red);font-size:12px;cursor:pointer">复制</span></div></div>
+        <span style="font-size:28px">📦</span>
+      </div>
+    </div>
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+        <div class="img c1" style="width:48px;height:48px;border-radius:8px;flex-shrink:0"><span class="em" style="font-size:20px">🎧</span></div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">无线蓝牙耳机 主动降噪 等2件</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:3px">订单号 2026061200888</div></div>
+      </div>
+      <div class="timeline">${logs.map(l=>`<div class="tl ${l[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
+        <div class="c"><div class="desc">${l[0]}</div><div class="time">${l[1]}</div></div></div>`).join('')}</div>
+    </div>
+    <div class="pb"></div>
+  </div>`;
+  return frame('物流详情页',inner,'p-logistics');
 }
 
 /* 12. 售后申请页 */
@@ -835,41 +902,8 @@ function afterSaleApply(){
     </div>
     <div class="pb" style="height:20px"></div>
   </div>
-  <div class="subbar"><div></div><button class="btn btn-red" style="margin-left:auto;height:42px;padding:0 40px;font-size:16px">提交申请</button></div>`;
-  return frameFixed('售后申请页',inner);
-}
-
-/* 13. 物流详情页 */
-function logisticsDetail(){
-  const logs=[
-    ['已签收：您的快件已由本人签收，感谢使用圆通速递','06-13 10:20',true],
-    ['派送中：快件正在派送，快递员 张师傅 138****6666','06-13 08:30',false],
-    ['运输中：快件已到达【上海浦东转运中心】','06-12 14:30',false],
-    ['运输中：快件已从【杭州集散中心】发出','06-12 09:10',false],
-    ['已揽收：快件已被圆通速递揽收','06-11 18:30',false],
-    ['商家已发货，等待揽收','06-11 18:00',false],
-  ];
-  const inner=`<div class="screen">
-    <div class="nav"><span class="back">‹</span><span class="ctitle">物流详情</span></div>
-    <div class="card" style="margin-top:0;border-radius:0;padding:14px 16px">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div><div style="font-size:15px;font-weight:600;color:var(--title)">圆通速递</div>
-          <div style="font-size:13px;color:var(--sub);margin-top:4px">运单号 YT2026061200888 <span style="color:var(--red);font-size:12px;cursor:pointer">复制</span></div></div>
-        <span style="font-size:28px">📦</span>
-      </div>
-    </div>
-    <div class="card" style="padding:14px 16px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
-        <div class="img c1" style="width:48px;height:48px;border-radius:8px;flex-shrink:0"><span class="em" style="font-size:20px">🎧</span></div>
-        <div style="flex:1;min-width:0"><div style="font-size:13px;color:var(--title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">无线蓝牙耳机 主动降噪 等2件</div>
-          <div style="font-size:12px;color:var(--sub);margin-top:3px">订单号 2026061200888</div></div>
-      </div>
-      <div class="timeline">${logs.map(l=>`<div class="tl ${l[2]?'on':''}"><div class="dot"></div><div class="ln"></div>
-        <div class="c"><div class="desc">${l[0]}</div><div class="time">${l[1]}</div></div></div>`).join('')}</div>
-    </div>
-    <div class="pb"></div>
-  </div>`;
-  return frame('物流详情页',inner);
+  <div class="subbar"><div></div><button class="btn btn-red" style="margin-left:auto;height:42px;padding:0 40px;font-size:16px" onclick="go('p-aftersale')">提交申请</button></div>`;
+  return frameFixed('售后申请页',inner,'p-applysale');
 }
 
 /* 14. 商品详情·售罄态 */
@@ -941,7 +975,7 @@ function cartInvalid(){
 }
 
 document.getElementById('gallery').innerHTML=[
-  home(),popup(),list(),detail(),detailSoldOut(),cart(),cartInvalid(),confirm(),pay(),orderList(),orderDetail(),orderShipping(),orderAfterSale(),afterSaleApply(),logisticsDetail(),profile(),couponPage()
+  home(),popup(),list(),detail(),detailSoldOut(),cart(),cartInvalid(),confirm(),pay(),orderList(),orderDetail(),orderShipping(),orderAfterSale(),afterSaleReviewing(),afterSaleDone(),afterSaleApply(),logisticsDetail(),profile(),couponPage()
 ].join('');
 </script>
 </body>
