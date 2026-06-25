@@ -754,6 +754,33 @@ function afterSaleDone(){
     acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button><button class="btn btn-soft" onclick="toast('订单已删除')">返回订单</button>`,
   });
 }
+/* 退货退款·待商家收货 */
+function afterSaleReceiving(){
+  return afterSalePage({
+    id:'p-aftersale-receiving',tag:'订单详情·待商家收货（退货退款）',type:'退货退款',ill:'🚚',
+    status:'等待商家收货',statusDesc:'商家收到货后将尽快为你退款',
+    steps:[
+      ['提交退款申请','06-12 10:00',true],
+      ['商家审核通过','06-12 11:30',true],
+      ['买家已寄回 · 顺丰 SF1234567890','06-12 15:20',true],
+      ['商家收货中','进行中',true],
+      ['退款完成 · 原路退回 ¥142.00','待退款',false],
+    ],
+    acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button><button class="btn btn-soft" onclick="toast('请修改寄回快递单号')">修改单号</button>`,
+  });
+}
+/* 退款关闭（驳回 / 撤销） */
+function afterSaleClosed(){
+  return afterSalePage({
+    id:'p-aftersale-closed',tag:'订单详情·退款关闭',type:'退货退款',ill:'❎',
+    status:'退款已关闭',statusDesc:'商家驳回：商品已影响二次销售，如有疑问请联系客服',
+    steps:[
+      ['提交退款申请','06-12 10:00',true],
+      ['商家审核未通过 · 退款关闭','06-12 11:30',true],
+    ],
+    acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button><button class="btn btn-red" onclick="go('p-applysale')">重新申请</button>`,
+  });
+}
 
 /* 8. 订单列表（全部状态） */
 const ACT_NAV={
@@ -766,7 +793,9 @@ const ACT_NAV={
   '确认收货':"toast('确认收货成功')",
   '查看售后进度':"go('p-aftersale')",
   '填写寄回单号':"toast('请填写寄回快递单号')",
+  '修改单号':"toast('请修改寄回快递单号')",
   '撤销申请':"toast('已撤销退款申请')",
+  '重新申请':"go('p-applysale')",
   '再次购买':"go('p-cart')",
   '删除订单':"toast('订单已删除')",
 };
@@ -779,6 +808,8 @@ function orderList(){
     {no:'2026061100776',st:'待收货',stc:'dark',nav:'p-orderdetail',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'137.00',acts:[['查看物流','soft'],['申请售后','soft'],['确认收货','red']]},
     {no:'2026061000312',st:'退款售后 · 退货退款',stc:'red',nav:'p-aftersale',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88],['c2','🥤','大容量保温焖烧杯','500ml 米白',69]],pay:'142.00',acts:[['查看售后进度','soft'],['填写寄回单号','red']]},
     {no:'2026061000266',st:'退款审核中',stc:'red',nav:'p-aftersale-review',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'129.00',acts:[['联系客服','soft'],['撤销申请','soft']]},
+    {no:'2026061000233',st:'待商家收货',stc:'red',nav:'p-aftersale-receiving',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['修改单号','soft'],['联系客服','soft']]},
+    {no:'2026060900177',st:'退款关闭',stc:'gray',nav:'p-aftersale-closed',items:[['c6','📦','便携折叠收纳箱','车载家用',49]],pay:'49.00',acts:[['重新申请','red'],['联系客服','soft']]},
     {no:'2026060900155',st:'退款成功',stc:'gray',nav:'p-aftersale-done',items:[['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'68.00',acts:[['删除订单','soft']]},
     {no:'2026060800521',st:'已完成',stc:'gray',nav:'p-orderdetail',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['删除订单','soft'],['再次购买','red']]},
     {no:'2026060500108',st:'已取消',stc:'gray',nav:'p-shipping',items:[['c6','📦','便携折叠收纳箱','车载家用',49]],pay:'49.00',acts:[['删除订单','soft']]},
@@ -975,7 +1006,7 @@ function cartInvalid(){
 }
 
 document.getElementById('gallery').innerHTML=[
-  home(),popup(),list(),detail(),detailSoldOut(),cart(),cartInvalid(),confirm(),pay(),orderList(),orderDetail(),orderShipping(),orderAfterSale(),afterSaleReviewing(),afterSaleDone(),afterSaleApply(),logisticsDetail(),profile(),couponPage()
+  home(),popup(),list(),detail(),detailSoldOut(),cart(),cartInvalid(),confirm(),pay(),orderList(),orderDetail(),orderShipping(),orderAfterSale(),afterSaleReviewing(),afterSaleReceiving(),afterSaleClosed(),afterSaleDone(),afterSaleApply(),logisticsDetail(),profile(),couponPage()
 ].join('');
 </script>
 </body>
