@@ -423,7 +423,7 @@ function ptagHtml(label){return label?`<span class="ptag-tl">${label}</span>`:''
 /* 优惠标签：按优先级(满减>无门槛)取前 max 个整标签，多余不展示 */
 const ALL_CTAGS=[{t:'full',label:'满100减10'},{t:'noth',label:'新人立减5'}];
 function ctagsHtml(tags,max){
-  const order={full:0,noth:1,member:2},cls={full:'red',noth:'orange',member:'gold'};
+  const order={full:0,noth:1},cls={full:'red',noth:'orange'};
   return `<div class="ctags">${[...tags].sort((a,b)=>order[a.t]-order[b.t]).slice(0,max).map(x=>`<span class="ctag ${cls[x.t]}">${x.label}</span>`).join('')}</div>`;
 }
 
@@ -778,7 +778,7 @@ function afterSaleClosed(){
       ['提交退款申请','06-12 10:00',true],
       ['商家审核未通过 · 退款关闭','06-12 11:30',true],
     ],
-    acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button><button class="btn btn-red" onclick="go('p-applysale')">重新申请</button>`,
+    acts:`<button class="btn btn-soft" onclick="toast('正在接入微信客服…')">联系客服</button>`,
   });
 }
 
@@ -795,7 +795,6 @@ const ACT_NAV={
   '填写寄回单号':"toast('请填写寄回快递单号')",
   '修改单号':"toast('请修改寄回快递单号')",
   '撤销申请':"toast('已撤销退款申请')",
-  '重新申请':"go('p-applysale')",
   '再次购买':"go('p-cart')",
   '删除订单':"toast('订单已删除')",
 };
@@ -806,10 +805,10 @@ function orderList(){
     {no:'2026061200888',st:'待付款',stc:'red',countdown:'29:59',nav:'p-shipping',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['取消订单','soft'],['去支付','red']]},
     {no:'2026061200999',st:'待发货',stc:'dark',nav:'p-shipping',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'129.00',acts:[['申请退款','soft'],['联系客服','soft']]},
     {no:'2026061100776',st:'待收货',stc:'dark',nav:'p-orderdetail',items:[['c2','🥤','大容量保温焖烧杯','500ml 米白',69],['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'137.00',acts:[['查看物流','soft'],['申请售后','soft'],['确认收货','red']]},
-    {no:'2026061000312',st:'退款售后 · 退货退款',stc:'red',nav:'p-aftersale',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88],['c2','🥤','大容量保温焖烧杯','500ml 米白',69]],pay:'142.00',acts:[['查看售后进度','soft'],['填写寄回单号','red']]},
+    {no:'2026061000312',st:'退款售后 · 退货退款',stc:'red',nav:'p-aftersale',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88],['c2','🥤','大容量保温焖烧杯','500ml 米白',69]],pay:'142.00',acts:[['联系客服','soft'],['查看售后进度','soft']]},
     {no:'2026061000266',st:'退款审核中',stc:'red',nav:'p-aftersale-review',items:[['c5','👕','纯棉针织家居服套装','春秋款 M码',129]],pay:'129.00',acts:[['联系客服','soft'],['撤销申请','soft']]},
-    {no:'2026061000233',st:'待商家收货',stc:'red',nav:'p-aftersale-receiving',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['修改单号','soft'],['联系客服','soft']]},
-    {no:'2026060900177',st:'退款关闭',stc:'gray',nav:'p-aftersale-closed',items:[['c6','📦','便携折叠收纳箱','车载家用',49]],pay:'49.00',acts:[['重新申请','red'],['联系客服','soft']]},
+    {no:'2026061000233',st:'待商家收货',stc:'red',nav:'p-aftersale-receiving',items:[['c1','🎧','无线蓝牙耳机 主动降噪','尊享版',88]],pay:'88.00',acts:[['联系客服','soft'],['查看售后进度','soft']]},
+    {no:'2026060900177',st:'退款关闭',stc:'gray',nav:'p-aftersale-closed',items:[['c6','📦','便携折叠收纳箱','车载家用',49]],pay:'49.00',acts:[['联系客服','soft']]},
     {no:'2026060900155',st:'退款成功',stc:'gray',nav:'p-aftersale-done',items:[['c4','🍽️','北欧陶瓷餐具套装','4人食',68]],pay:'68.00',acts:[['删除订单','soft']]},
     {no:'2026060800521',st:'已完成',stc:'gray',nav:'p-orderdetail',items:[['c3','🕯️','手工香薰蜡烛礼盒','母亲节款',128]],pay:'118.00',acts:[['删除订单','soft'],['再次购买','red']]},
     {no:'2026060500108',st:'已取消',stc:'gray',nav:'p-shipping',items:[['c6','📦','便携折叠收纳箱','车载家用',49]],pay:'49.00',acts:[['删除订单','soft']]},
