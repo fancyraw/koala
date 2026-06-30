@@ -141,6 +141,12 @@
   .ops-stat .v{font-size:15px;font-weight:600;color:var(--t1);margin-top:8px;display:flex;align-items:center;gap:6px;}
   .ops-stat .v .dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
   .ops-stat .sub{font-size:12px;color:var(--t3);margin-top:4px;}
+  .trend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .trend-card{border:1px solid var(--line);border-radius:8px;padding:12px 16px;}
+  .trend-head{display:flex;align-items:baseline;justify-content:space-between;}
+  .trend-head .trend-t{font-size:13px;color:var(--t3);}
+  .trend-head .trend-v{font-size:16px;font-weight:600;color:var(--t1);}
+  .trend-chart{height:90px;align-items:center;justify-content:center;color:var(--t3);font-size:12px;background:#FAFAFA;border-radius:6px;margin-top:8px;text-align:center;}
   .sqlbox{width:100%;height:80px;border:1px solid #D9D9D9;border-radius:6px;padding:10px;font-family:monospace;font-size:13px;resize:none;background:#FAFAFA;}
   .order-detail{background:#FAFAFA;font-size:13px;color:var(--t2);line-height:1.9;}
   .order-detail td{padding:12px 16px;}
@@ -160,7 +166,7 @@
     <span class="ttl">KOALA 管理后台</span>
     <div class="right">
       <span class="bell">🔔<i></i></span>
-      <span class="adm"><span class="av">管</span>管理员 ▾</span>
+      <span class="adm" onclick="toggleRole()" title="演示：切换超管/管理员视角，验证运维管理可见性"><span class="av">管</span>当前视角：<b id="role-badge" style="margin:0 2px">超管</b> ⇄</span>
     </div>
   </div>
 
@@ -177,29 +183,40 @@ const MENU=[
   {k:'users',ic:'👥',l:'用户管理'},
   {k:'coupons',ic:'🎟️',l:'优惠券管理'},
   {k:'banners',ic:'🖼️',l:'内容管理'},
+  {k:'admins',ic:'🔑',l:'管理员管理'},
   {k:'settings',ic:'⚙️',l:'系统设置'},
   {divider:true},
-  {k:'ops',ic:'🛠️',l:'运维管理'},
+  {k:'ops',ic:'🛠️',l:'运维管理',super:true},
 ];
 const CRUMB={
   dashboard:'数据看板', products:'商品管理', categories:'商品管理 / 分类管理', tags:'商品管理 / 标签管理',
   orders:'订单管理', users:'用户管理', coupons:'优惠券管理',
   banners:'内容管理 / Banner 管理',
-  settings:'系统设置', ops:'运维管理'
+  settings:'系统设置', admins:'管理员管理', ops:'运维管理'
 };
 let current='dashboard';
+let isSuper=true; // 演示：当前登录者是否超管。运维管理(super:true)仅超管可见
 
 function renderMenu(){
   const MENU_PARENT={categories:'products',tags:'products'};
   const active=MENU_PARENT[current]||current;
-  document.getElementById('sidebar').innerHTML=MENU.map(m=>{
+  // 按角色过滤，并丢弃因过滤而悬空的分隔线（开头/结尾/连续）
+  const items=MENU.filter(m=>!(m.super&&!isSuper));
+  const cleaned=items.filter((m,i)=>!(m.divider&&(i===0||i===items.length-1||items[i+1]?.divider)));
+  document.getElementById('sidebar').innerHTML=cleaned.map(m=>{
     if(m.group)return `<div class="menu-group">${m.group}</div>`;
     if(m.divider)return `<div class="menu-divider"></div>`;
     return `<div class="menu-item ${m.sub?'sub':''} ${m.k===active?'on':''}" onclick="nav('${m.k}')">
       ${m.sub?'':`<span class="ic">${m.ic}</span>`}<span>${m.l}</span></div>`;
   }).join('')+`<div class="ver">v1.0.0</div>`;
 }
-function nav(k,arg){current=k;renderMenu();
+// 演示用：切换"超管/普通管理员"视角，验证运维管理的可见性
+function toggleRole(){
+  isSuper=!isSuper;
+  document.getElementById('role-badge').textContent=isSuper?'超管':'管理员';
+  if(!isSuper&&current==='ops')nav('dashboard');else renderMenu();
+}
+function nav(k,arg){if(k==='ops'&&!isSuper)k='dashboard';current=k;renderMenu();
   document.getElementById('main').innerHTML=`<div class="crumb">首页 / <b>${CRUMB[k]}</b></div>`+PAGES[k](arg);
 }
 
@@ -560,7 +577,7 @@ PAGES.banners=()=>{
 PAGES.settings=()=>`
   <div class="card-head"><h2 class="page-title">系统设置</h2></div>
   <div class="card">
-    <div class="tabs"><span class="tab on" onclick="switchSettingsTab(0)">配送设置</span><span class="tab" onclick="switchSettingsTab(1)">支付设置</span><span class="tab" onclick="switchSettingsTab(2)">订单设置</span></div>
+    <div class="tabs"><span class="tab on" onclick="switchSettingsTab(0)">配送设置</span><span class="tab" onclick="switchSettingsTab(1)">支付设置</span><span class="tab" onclick="switchSettingsTab(2)">订单设置</span><span class="tab" onclick="switchSettingsTab(3)">维护模式</span></div>
     <div id="st-panel-0">
       <div class="group-title">配送设置</div>
       <div class="form-row"><div class="lab">基础运费</div><div class="ctl"><input class="input" style="width:120px" value="8"> 元</div></div>
@@ -580,13 +597,76 @@ PAGES.settings=()=>`
       <div class="form-row"><div class="lab">自动确认收货</div><div class="ctl">发货后 <input class="input" style="width:120px" value="15"> 天　<span style="color:var(--t3);font-size:13px">超时自动确认收货</span></div></div>
       <div class="form-foot"><span class="btn btn-default">重置</span><span class="btn btn-primary">保存</span></div>
     </div>
+    <div id="st-panel-3" style="display:none">
+      <div class="group-title">维护模式</div>
+      <div id="mt-alert" style="display:none;background:#FFF1F0;border:1px solid #FFCCC7;color:#CF1322;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px">⚠ 当前处于维护中，C 端已停止下单 / 支付等写操作，浏览不受影响</div>
+      <div class="form-row"><div class="lab">维护开关</div><div class="ctl"><span class="toggle" style="background:#D9D9D9" onclick="toggleMaintenance(this)"><i style="right:auto;left:2px"></i></span> <span style="color:var(--t3);margin-left:8px">已关闭</span><span style="color:var(--t4);font-size:13px;margin-left:12px">开启后 C 端无法下单/支付/购物车/售后等操作</span></div></div>
+      <div class="form-row"><div class="lab">提示文案</div><div class="ctl"><input class="input" style="width:360px" value="系统维护中，请稍后再试"></div></div>
+      <div class="form-foot"><span class="btn btn-default">重置</span><span class="btn btn-primary">保存</span></div>
+    </div>
   </div>`;
 function switchSettingsTab(idx){
   const card=document.getElementById('st-panel-0')?.parentElement;
   if(!card)return;
   card.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('on'));
   card.querySelectorAll('.tabs .tab')[idx]?.classList.add('on');
-  for(let i=0;i<3;i++){const p=document.getElementById('st-panel-'+i);if(p)p.style.display=i===idx?'':'none';}
+  for(let i=0;i<4;i++){const p=document.getElementById('st-panel-'+i);if(p)p.style.display=i===idx?'':'none';}
+}
+function toggleMaintenance(el){
+  const turningOn=el.style.background!=='rgb(82, 196, 26)';
+  if(!confirm(turningOn?'确认开启维护模式？开启后 C 端将无法下单、支付等操作。':'确认关闭维护模式，恢复 C 端正常下单？'))return;
+  el.style.background=turningOn?'var(--green)':'#D9D9D9';
+  const i=el.querySelector('i');
+  if(turningOn){i.style.right='2px';i.style.left='auto';}else{i.style.right='auto';i.style.left='2px';}
+  const label=el.nextElementSibling;
+  if(label&&label.tagName==='SPAN')label.textContent=turningOn?'已开启':'已关闭';
+  const alert=document.getElementById('mt-alert');
+  if(alert)alert.style.display=turningOn?'':'none';
+}
+
+PAGES.admins=()=>{
+  // status: green=已启用 yellow=待审核(扫码入库未启用) gray=已禁用; super=超管(不可禁用/删除)
+  const rows=[
+    ['超管 Tina','超管','o_a1b2c3xxxx','06-01 09:00','green','已启用',true],
+    ['客服小李','管理员','o_d4e5f6xxxx','06-20 14:30','green','已启用',false],
+    ['运营小王','管理员','o_g7h8i9xxxx','06-28 11:10','yellow','待审核',false],
+    ['前员工老张','管理员','o_j1k2l3xxxx','05-10 10:00','gray','已禁用',false],
+  ];
+  return `
+  <div class="card-head"><h2 class="page-title">管理员管理</h2><span class="btn btn-primary" onclick="openInviteModal()">+ 邀请管理员</span></div>
+  <div class="card">
+    <div style="color:var(--t3);font-size:13px;margin-bottom:12px">💡 仅微信扫码登录，无密码。新管理员由超管「邀请」生成一次性二维码，对方扫码后进入<b>待审核</b>，超管启用后方可登录。</div>
+    <table><thead><tr><th>昵称</th><th>角色</th><th>微信 openid</th><th>加入时间</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><b>${r[0]}</b></td>
+      <td>${r[1]==='超管'?'<span class="tag gold">超管</span>':'<span class="tag blue">管理员</span>'}</td>
+      <td style="color:var(--t3);font-family:monospace;font-size:12px">${r[2]}</td>
+      <td>${r[3]}</td>
+      <td><span class="tag ${r[4]}">${r[5]}</span></td>
+      <td>${r[6]?'<span style="color:var(--t4);font-size:13px">超管不可操作</span>'
+        :r[4]==='yellow'?'<span class="link" onclick="confirm(\'确认启用该管理员？启用后即可扫码登录后台。\')">启用</span>'
+        :r[4]==='green'?'<span class="link danger" onclick="confirm(\'确认禁用？禁用后该管理员立即无法登录。\')">禁用</span>'
+        :'<span class="link" onclick="confirm(\'确认重新启用该管理员？\')">启用</span>'}</td>
+    </tr>`).join('')}</tbody></table>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">${pager(1)}</div>
+  </div>`;
+};
+
+function openInviteModal(){
+  openModal('邀请管理员',`
+    <div style="color:var(--t3);font-size:13px;margin-bottom:16px;line-height:1.7">
+      生成<b>一次性邀请二维码</b>（30 分钟内有效，用过即废）。把二维码或链接发给对方，对方用微信扫码授权后进入<b>待审核</b>列表，你点「启用」后 TA 即可扫码登录。
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0 16px">
+      <div style="width:180px;height:180px;border:1px dashed #D9D9D9;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--t4);font-size:48px">▦</div>
+      <div style="color:var(--t3);font-size:13px">⏳ 有效期 29:58</div>
+      <div style="display:flex;gap:8px;width:100%">
+        <input class="input" style="flex:1" value="https://域名/koala/admin/invite?token=xxxxxxxx" readonly>
+        <span class="btn btn-default">复制链接</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px"><span class="btn" onclick="closeModal()">关闭</span><span class="btn btn-primary">重新生成</span></div>
+  `,420);
 }
 
 PAGES.ops=()=>{
@@ -605,7 +685,7 @@ PAGES.ops=()=>{
   return `
   <div class="card-head"><h2 class="page-title">运维管理</h2></div>
   <div class="card">
-    <div class="tabs"><span class="tab on" onclick="switchOpsTab(0)">系统健康</span><span class="tab" onclick="switchOpsTab(1)">系统监控</span><span class="tab" onclick="switchOpsTab(2)">操作日志</span><span class="tab" onclick="switchOpsTab(3)">数据操作</span></div>
+    <div class="tabs"><span class="tab on" onclick="switchOpsTab(0)">系统健康</span><span class="tab" onclick="switchOpsTab(1)">操作日志</span><span class="tab" onclick="switchOpsTab(2)">数据操作</span></div>
     <div id="ops-panel-0">
       <div class="group-title">系统健康（技术）</div>
       <div class="ops-stats">
@@ -615,24 +695,19 @@ PAGES.ops=()=>{
         <div class="ops-stat"><div class="t">磁盘</div><div class="v">已用 35%</div><div class="sub">18G / 50G</div></div>
       </div>
       <div class="count">JVM：堆 256M/512M ｜ CPU 12% ｜ 内存 1.2G/2G　（自动刷新）</div>
+
+      <div class="group-title" style="margin-top:20px">性能趋势（近 60 分钟 · 取自 metrics_snapshot）</div>
+      <div style="color:var(--t3);font-size:13px;margin-bottom:12px">💡 指标源自 Actuator / Micrometer（后端零埋点），每分钟一次快照（6 项精简）。限流拦截、关键错误等异常经企业微信群机器人告警，不在此常驻展示</div>
+      <div class="trend-grid">
+        <div class="trend-card"><div class="trend-head"><span class="trend-t">实时 QPS</span><span class="trend-v">42</span></div><div class="chart trend-chart">QPS 折线（取自 metrics_snapshot.qps）</div></div>
+        <div class="trend-card"><div class="trend-head"><span class="trend-t">p95 耗时</span><span class="trend-v">86ms</span></div><div class="chart trend-chart">p95 折线（metrics_snapshot.p95_ms）</div></div>
+        <div class="trend-card"><div class="trend-head"><span class="trend-t">错误率</span><span class="trend-v">0.3%</span></div><div class="chart trend-chart">错误率折线（metrics_snapshot.error_rate）</div></div>
+        <div class="trend-card"><div class="trend-head"><span class="trend-t">DB 连接池等待</span><span class="trend-v">0</span></div><div class="chart trend-chart">pending 折线（metrics_snapshot.db_pool_pending）</div></div>
+        <div class="trend-card"><div class="trend-head"><span class="trend-t">CPU 使用率</span><span class="trend-v">12%</span></div><div class="chart trend-chart">CPU 折线（metrics_snapshot.cpu_percent）</div></div>
+        <div class="trend-card"><div class="trend-head"><span class="trend-t">堆内存</span><span class="trend-v">256M</span></div><div class="chart trend-chart">堆已用折线（metrics_snapshot.heap_used_mb）</div></div>
+      </div>
     </div>
     <div id="ops-panel-1" style="display:none">
-      <div class="group-title">系统监控（接口 / 技术）</div>
-      <div style="color:var(--t3);font-size:13px;margin-bottom:12px">💡 指标源自 Actuator / Micrometer + Redis 限流器（后端零埋点）；定时快照入 metrics_snapshot 表以支撑趋势曲线</div>
-      <div class="ops-stats">
-        <div class="ops-stat"><div class="t">实时 QPS</div><div class="v">42</div><div class="sub">Top 接口 /api/v1/products</div></div>
-        <div class="ops-stat"><div class="t">p95 耗时</div><div class="v">86ms</div><div class="sub">全接口</div></div>
-        <div class="ops-stat"><div class="t">错误率</div><div class="v">0.3%</div><div class="sub">ERROR 日志 2 条/分</div></div>
-        <div class="ops-stat"><div class="t">DB 连接池</div><div class="v">active 3 / idle 7</div><div class="sub">pending 0</div></div>
-        <div class="ops-stat"><div class="t">Tomcat 线程</div><div class="v">busy 8 / 200</div><div class="sub">未打满</div></div>
-        <div class="ops-stat"><div class="t">GC 停顿</div><div class="v">max 12ms</div><div class="sub">近 1 分钟 1 次</div></div>
-        <div class="ops-stat"><div class="t">限流拦截</div><div class="v">5 次</div><div class="sub">近 1 小时 · 异常流量</div></div>
-        <div class="ops-stat"><div class="t">堆内存</div><div class="v">256M / 512M</div><div class="sub">CPU 12%</div></div>
-      </div>
-      <div class="group-title" style="margin-top:16px">QPS / 错误率趋势</div>
-      <div class="chart" style="margin-top:12px;align-items:center;justify-content:center;color:var(--t3)">QPS / p95 / 错误率 趋势折线图（取自 metrics_snapshot）</div>
-    </div>
-    <div id="ops-panel-2" style="display:none">
       <div style="color:var(--t3);font-size:13px;margin:8px 0">同源同构的关键事件日志（operator_type 区分主体），单列表 + 操作主体筛选；全量请求明细走文件日志，按 traceId 定位</div>
       <div class="toolbar">
         <select class="select"><option>全部主体</option><option>C 端用户</option><option>管理员</option><option>系统</option></select>
@@ -641,7 +716,7 @@ PAGES.ops=()=>{
       <tbody>${opLogs.map(l=>`<tr><td>${l[0]}</td><td><span class="tag ${subjectTag[l[1]]}">${l[1]}</span></td><td>${l[2]}</td><td>${l[3]}</td><td>${l[4]}</td><td>${l[5]}</td><td><span class="link">${l[6]}</span></td></tr>`).join('')}</tbody></table>
       ${pager(3)}
     </div>
-    <div id="ops-panel-3" style="display:none">
+    <div id="ops-panel-2" style="display:none">
       <div class="card-head"><h3>数据操作（只读查询）</h3></div>
       <div style="margin-bottom:8px;color:var(--t2)">SQL 查询（只读）· 走独立只读 DB 账号，仅 SELECT；单次最多 500 行；记审计日志</div>
       <textarea class="sqlbox">SELECT * FROM user WHERE id = 1;</textarea>
@@ -655,7 +730,7 @@ function switchOpsTab(idx){
   if(!card)return;
   card.querySelectorAll(':scope > .tabs .tab').forEach(t=>t.classList.remove('on'));
   card.querySelectorAll(':scope > .tabs .tab')[idx]?.classList.add('on');
-  for(let i=0;i<4;i++){const p=document.getElementById('ops-panel-'+i);if(p)p.style.display=i===idx?'':'none';}
+  for(let i=0;i<3;i++){const p=document.getElementById('ops-panel-'+i);if(p)p.style.display=i===idx?'':'none';}
 }
 
 /* ---------- 初始化 ---------- */
