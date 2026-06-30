@@ -34,7 +34,7 @@ CREATE TABLE user_address (
     phone VARCHAR(20) NOT NULL COMMENT '收货人手机号',
     province_code CHAR(6) NOT NULL COMMENT '省级行政区划码(adcode,GB/T2260)',
     city_code CHAR(6) NOT NULL COMMENT '市级行政区划码',
-    district_code CHAR(6) NOT NULL COMMENT '区/县级行政区划码',
+    district_code VARCHAR(9) NOT NULL COMMENT '区/县级行政区划码(直筒子市为9位镇级码)',
     province VARCHAR(32) NOT NULL COMMENT '省(中文名,展示冗余)',
     city VARCHAR(32) NOT NULL COMMENT '市(中文名,展示冗余)',
     district VARCHAR(32) NOT NULL COMMENT '区/县(中文名,展示冗余)',
@@ -47,8 +47,8 @@ CREATE TABLE user_address (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户地址表';
 
 CREATE TABLE region (
-    code CHAR(6) PRIMARY KEY COMMENT '行政区划码(adcode)',
-    parent_code CHAR(6) COMMENT '父级码(省级为NULL)',
+    code VARCHAR(9) PRIMARY KEY COMMENT '行政区划码(adcode,直筒子市镇级为9位)',
+    parent_code VARCHAR(9) COMMENT '父级码(省级为NULL)',
     name VARCHAR(64) NOT NULL COMMENT '区划名称',
     level TINYINT NOT NULL COMMENT '层级:1=省 2=市 3=区/县',
     INDEX idx_parent (parent_code)
