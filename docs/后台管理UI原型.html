@@ -490,11 +490,11 @@ function openUserOrders(name){
 
 function openUserCoupons(name){
   openModal(`${name} · 优惠券`,`
-    <table><thead><tr><th>券名</th><th>类型</th><th>来源</th><th>状态</th><th>使用时间</th><th>有效期</th></tr></thead>
+    <table><thead><tr><th>券名</th><th>类型</th><th>状态</th><th>使用时间</th><th>有效期</th></tr></thead>
     <tbody>
-      <tr><td>满100减10</td><td>满减券</td><td>活动</td><td><span class="tag green">可用</span></td><td style="color:var(--t3)">—</td><td>~06.30</td></tr>
-      <tr><td>新人立减5</td><td>无门槛券</td><td>新人</td><td><span class="tag gray">已使用</span></td><td>06-05 09:15</td><td>长期</td></tr>
-      <tr><td>满200减25</td><td>满减券</td><td>活动</td><td><span class="tag gray">已过期</span></td><td style="color:var(--t3)">—</td><td>~05.31</td></tr>
+      <tr><td>满100减10</td><td>满减券</td><td><span class="tag green">可用</span></td><td style="color:var(--t3)">—</td><td>~06.30</td></tr>
+      <tr><td>新人专享5</td><td>无门槛券</td><td><span class="tag gray">已使用</span></td><td>06-05 09:15</td><td>长期</td></tr>
+      <tr><td>满200减25</td><td>满减券</td><td><span class="tag gray">已过期</span></td><td style="color:var(--t3)">—</td><td>~05.31</td></tr>
     </tbody></table>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">${pager(2)}<span class="btn" onclick="closeModal()">关闭</span></div>
   `,640);
@@ -502,9 +502,9 @@ function openUserCoupons(name){
 
 PAGES.coupons=()=>{
   const cps=[
-    ['满100减10','满减券','06.01 ~ 06.30','2张/人','156/500','已用42 · 核销27%','green','● 进行中',true],
-    ['新人立减5元','无门槛券','长期有效','1张/人','89/200','已用67 · 核销75%','green','● 进行中',true],
-    ['满200减25','满减券','06.15 ~ 07.15','1张/人','0/300','未开始','gray','○ 未开始',false],
+    ['满100减10','满减券','06.01 ~ 06.30','156/500','已用42 · 核销27%','green','● 进行中',true],
+    ['新人专享5元','无门槛券','长期有效','89/200','已用67 · 核销75%','green','● 进行中',true],
+    ['满200减25','满减券','06.15 ~ 07.15','0/300','未开始','gray','○ 未开始',false],
   ];
   return `
   <div class="card-head"><h2 class="page-title">优惠券管理</h2><span class="btn btn-primary" onclick="openCouponModal('new')">+ 新建券模版</span></div>
@@ -513,12 +513,12 @@ PAGES.coupons=()=>{
     <div class="tabs"><span class="tab on" onclick="switchTab(this)">全部</span><span class="tab" onclick="switchTab(this)">进行中</span><span class="tab" onclick="switchTab(this)">未开始</span><span class="tab" onclick="switchTab(this)">已结束</span><span class="tab" onclick="switchTab(this)">已停发</span></div>
     <div class="toolbar"><input class="input" placeholder="🔍 搜索券名" style="width:240px"><span class="count" style="margin-left:auto">共 ${cps.length} 张券模版</span></div>
     <div class="coupons">${cps.map(c=>`<div class="cpc">
-      <div class="st" style="color:${c[6]==='green'?'var(--green)':'var(--t3)'}">${c[7]}</div>
+      <div class="st" style="color:${c[5]==='green'?'var(--green)':'var(--t3)'}">${c[6]}</div>
       <div class="cn">🎟️ ${c[0]}</div>
       <div class="row">类型：${c[1]}</div>
-      <div class="row">有效期：${c[2]}　限领：${c[3]}</div>
-      <div class="data">已发 <b>${c[4]}</b>　${c[5]}</div>
-      <div class="acts"><span class="link" onclick="openCouponModal('edit','${c[0]}',${c[8]})">编辑</span>${c[8]?'<span class="link muted">停发</span>':'<span class="link danger">删除</span>'}<span class="link" onclick="openGrants('${c[0]}')">发放明细 ›</span></div>
+      <div class="row">有效期：${c[2]}</div>
+      <div class="data">已发 <b>${c[3]}</b>　${c[4]}</div>
+      <div class="acts"><span class="link" onclick="openCouponModal('edit','${c[0]}',${c[7]})">编辑</span>${c[7]?'<span class="link muted">停发</span>':'<span class="link danger">删除</span>'}<span class="link" onclick="openGrants('${c[0]}')">发放明细 ›</span></div>
     </div>`).join('')}</div>
     ${pager(3)}
   </div>`;
@@ -536,9 +536,7 @@ function openCouponModal(mode,name,started){
     <div class="form-row"><div class="lab">券类型</div><div class="ctl"><select class="select"${ld}><option>满减券</option><option>无门槛券</option></select>${lock?' <span style="color:var(--t3);font-size:13px;margin-left:8px">已开始，类型不可改</span>':''}</div></div>
     <div class="form-row"><div class="lab">优惠金额</div><div class="ctl">减 <input class="input" style="width:90px" type="number" min="0"${ld}${isNew?'':' value="10"'}> 元　满 <input class="input" style="width:90px" type="number" min="0"${ld}${isNew?'':' value="100"'}> 元可用 <span style="color:var(--t3);font-size:13px;margin-left:8px">无门槛券隐藏门槛</span></div></div>
     <div class="form-row"><div class="lab">有效期</div><div class="ctl"><input class="input" style="width:140px" placeholder="开始日期"${isNew?'':' value="2026-06-01"'}> ~ <input class="input" style="width:140px" placeholder="结束日期"${isNew?'':' value="2026-06-30"'}></div></div>
-    <div class="form-row"><div class="lab">每人限领</div><div class="ctl"><input class="input" style="width:90px" type="number" min="1"${isNew?' placeholder="1"':' value="2"'}> 张</div></div>
-    <div class="form-row"><div class="lab">发行总量</div><div class="ctl"><input class="input" style="width:120px" type="number" min="1"${isNew?' placeholder="500"':' value="500"'}> 张</div></div>
-    <div class="form-row"><div class="lab">适用用户</div><div class="ctl"><select class="select" multiple style="height:auto"${ld}><option ${!isNew?'selected':''}>新人</option><option>活动</option></select> <span style="color:var(--t3);font-size:13px;margin-left:8px">多选，不选 = 通投全员；下发资格实时计算</span></div></div>
+    <div class="form-row"><div class="lab">发行总量</div><div class="ctl"><input class="input" style="width:120px" type="number" min="1"${isNew?' placeholder="500"':' value="500"'}> 张 <span style="color:var(--t3);font-size:13px;margin-left:8px">通投全员，每人限领 1 张</span></div></div>
     <div class="form-foot" style="margin-top:20px"><span class="btn btn-default" onclick="closeModal()">取消</span><span class="btn btn-primary" onclick="closeModal()">保存</span></div>`;
   openModal(title,body,560);
 }
@@ -599,7 +597,7 @@ PAGES.ops=()=>{
     ['06-10 14:20:30','管理员','admin','商品','上架商品「百花蜜」','成功','t-9a8b7c'],
     ['06-10 14:18:30','C端用户','王五','退款申请','订单 2026060998 申请退货退款','待审核','t-1122aa'],
     ['06-10 14:15:10','管理员','admin','订单','订单 2026061001 发货','成功','t-33ff44'],
-    ['06-10 14:10:12','C端用户','张三','领券到账','发放新人券 ×2','成功','t-55cc66'],
+    ['06-10 14:10:12','C端用户','张三','领券到账','发放新人专享券、满100减10 各1张','成功','t-55cc66'],
     ['06-10 13:30:00','系统','定时任务','优惠券过期','扫描到期用户券 12 张置过期','成功','t-77ee88'],
     ['06-10 13:00:05','管理员','admin','优惠券','创建券模版「满100减10」','成功','t-99dd00'],
   ];
