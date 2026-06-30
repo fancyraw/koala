@@ -592,21 +592,22 @@ function switchSettingsTab(idx){
 }
 
 PAGES.ops=()=>{
-  const bizLogs=[
-    ['06-10 14:22:01','用户 张三','下单','订单 2026061012 提交，¥142','成功'],
-    ['06-10 14:20:48','用户 李四','支付','订单 2026061011 微信支付','成功'],
-    ['06-10 14:18:30','用户 王五','退款申请','订单 2026060998 申请退货退款','待审核'],
-    ['06-10 14:10:12','用户 张三','领券到账','发放新人券 ×2','成功'],
+  // 同源同构，operator_type 区分主体：C端用户 / 管理员 / 系统
+  const opLogs=[
+    ['06-10 14:22:01','C端用户','张三','下单','订单 2026061012 提交，¥142','成功','t-a1b2c3'],
+    ['06-10 14:20:48','C端用户','李四','支付','订单 2026061011 微信支付','成功','t-d4e5f6'],
+    ['06-10 14:20:30','管理员','admin','商品','上架商品「百花蜜」','成功','t-9a8b7c'],
+    ['06-10 14:18:30','C端用户','王五','退款申请','订单 2026060998 申请退货退款','待审核','t-1122aa'],
+    ['06-10 14:15:10','管理员','admin','订单','订单 2026061001 发货','成功','t-33ff44'],
+    ['06-10 14:10:12','C端用户','张三','领券到账','发放新人券 ×2','成功','t-55cc66'],
+    ['06-10 13:30:00','系统','定时任务','优惠券过期','扫描到期用户券 12 张置过期','成功','t-77ee88'],
+    ['06-10 13:00:05','管理员','admin','优惠券','创建券模版「满100减10」','成功','t-99dd00'],
   ];
-  const adminLogs=[
-    ['06-10 14:20:30','admin','商品','上架商品「百花蜜」'],
-    ['06-10 14:15:10','admin','订单','订单 2026061001 发货'],
-    ['06-10 13:00:05','admin','优惠券','创建券模版「满100减10」'],
-  ];
+  const subjectTag={'C端用户':'blue','管理员':'green','系统':'gray'};
   return `
   <div class="card-head"><h2 class="page-title">运维管理</h2></div>
   <div class="card">
-    <div class="tabs"><span class="tab on" onclick="switchOpsTab(0)">系统健康</span><span class="tab" onclick="switchOpsTab(1)">运营监控</span><span class="tab" onclick="switchOpsTab(2)">日志中心</span><span class="tab" onclick="switchOpsTab(3)">数据操作</span></div>
+    <div class="tabs"><span class="tab on" onclick="switchOpsTab(0)">系统健康</span><span class="tab" onclick="switchOpsTab(1)">系统监控</span><span class="tab" onclick="switchOpsTab(2)">操作日志</span><span class="tab" onclick="switchOpsTab(3)">数据操作</span></div>
     <div id="ops-panel-0">
       <div class="group-title">系统健康（技术）</div>
       <div class="ops-stats">
@@ -618,40 +619,36 @@ PAGES.ops=()=>{
       <div class="count">JVM：堆 256M/512M ｜ CPU 12% ｜ 内存 1.2G/2G　（自动刷新）</div>
     </div>
     <div id="ops-panel-1" style="display:none">
-      <div class="group-title">运营监控（产品）</div>
+      <div class="group-title">系统监控（接口 / 技术）</div>
+      <div style="color:var(--t3);font-size:13px;margin-bottom:12px">💡 指标源自 Actuator / Micrometer + Redis 限流器（后端零埋点）；定时快照入 metrics_snapshot 表以支撑趋势曲线</div>
       <div class="ops-stats">
-        <div class="ops-stat"><div class="t">今日 PV</div><div class="v">8,420</div><div class="sub">↑12% 较昨日</div></div>
-        <div class="ops-stat"><div class="t">今日 UV</div><div class="v">1,250</div><div class="sub">↑8% 较昨日</div></div>
-        <div class="ops-stat"><div class="t">实时下单</div><div class="v">12</div><div class="sub">近 1 小时</div></div>
-        <div class="ops-stat"><div class="t">支付成功率</div><div class="v">98%</div><div class="sub">今日</div></div>
+        <div class="ops-stat"><div class="t">实时 QPS</div><div class="v">42</div><div class="sub">Top 接口 /api/v1/products</div></div>
+        <div class="ops-stat"><div class="t">p95 耗时</div><div class="v">86ms</div><div class="sub">全接口</div></div>
+        <div class="ops-stat"><div class="t">错误率</div><div class="v">0.3%</div><div class="sub">ERROR 日志 2 条/分</div></div>
+        <div class="ops-stat"><div class="t">DB 连接池</div><div class="v">active 3 / idle 7</div><div class="sub">pending 0</div></div>
+        <div class="ops-stat"><div class="t">Tomcat 线程</div><div class="v">busy 8 / 200</div><div class="sub">未打满</div></div>
+        <div class="ops-stat"><div class="t">GC 停顿</div><div class="v">max 12ms</div><div class="sub">近 1 分钟 1 次</div></div>
+        <div class="ops-stat"><div class="t">限流拦截</div><div class="v">5 次</div><div class="sub">近 1 小时 · 异常流量</div></div>
+        <div class="ops-stat"><div class="t">堆内存</div><div class="v">256M / 512M</div><div class="sub">CPU 12%</div></div>
       </div>
-      <div class="group-title" style="margin-top:16px">转化漏斗</div>
-      <div class="count">浏览 8,420 → 加购 1,860 → 下单 320 → 支付 296</div>
-      <div class="chart" style="margin-top:12px;align-items:center;justify-content:center;color:var(--t3)">PV / UV 趋势折线图</div>
+      <div class="group-title" style="margin-top:16px">QPS / 错误率趋势</div>
+      <div class="chart" style="margin-top:12px;align-items:center;justify-content:center;color:var(--t3)">QPS / p95 / 错误率 趋势折线图（取自 metrics_snapshot）</div>
     </div>
     <div id="ops-panel-2" style="display:none">
-      <div class="tabs"><span class="tab on" onclick="switchLogTab(0)">C 端业务日志</span><span class="tab" onclick="switchLogTab(1)">管理员操作日志</span></div>
-      <div id="log-panel-0">
-        <div style="color:var(--t3);font-size:13px;margin:8px 0">C 端用户关键读写行为，用于业务监控与回溯</div>
-        <div class="toolbar"><input class="input" placeholder="🔍 用户 / 内容"><select class="select"><option>全部类型</option></select><input class="input" style="width:160px" placeholder="日期范围"></div>
-        <table><thead><tr><th>时间</th><th>用户</th><th>类型</th><th>内容</th><th>结果</th></tr></thead>
-        <tbody>${bizLogs.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td><td><span class="tag blue">${l[2]}</span></td><td>${l[3]}</td><td>${l[4]}</td></tr>`).join('')}</tbody></table>
-      </div>
-      <div id="log-panel-1" style="display:none">
-        <div style="color:var(--t3);font-size:13px;margin:8px 0">后台管理员写操作记录，用于权限审计与追责</div>
-        <div class="toolbar"><input class="input" placeholder="🔍 操作人 / 内容"><select class="select"><option>全部类型</option></select><input class="input" style="width:160px" placeholder="日期范围"></div>
-        <table><thead><tr><th>时间</th><th>操作人</th><th>类型</th><th>操作内容</th></tr></thead>
-        <tbody>${adminLogs.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td><td><span class="tag blue">${l[2]}</span></td><td>${l[3]}</td></tr>`).join('')}</tbody></table>
-      </div>
+      <div style="color:var(--t3);font-size:13px;margin:8px 0">同源同构的关键事件日志（operator_type 区分主体），单列表 + 操作主体筛选；全量请求明细走文件日志，按 traceId 定位</div>
+      <div class="toolbar">
+        <select class="select"><option>全部主体</option><option>C 端用户</option><option>管理员</option><option>系统</option></select>
+        <input class="input" placeholder="🔍 操作人 / 内容 / user_id"><select class="select"><option>全部类型</option></select><input class="input" style="width:160px" placeholder="日期范围"></div>
+      <table><thead><tr><th>时间</th><th>操作主体</th><th>操作人</th><th>类型</th><th>内容</th><th>结果</th><th>traceId</th></tr></thead>
+      <tbody>${opLogs.map(l=>`<tr><td>${l[0]}</td><td><span class="tag ${subjectTag[l[1]]}">${l[1]}</span></td><td>${l[2]}</td><td>${l[3]}</td><td>${l[4]}</td><td>${l[5]}</td><td><span class="link">${l[6]}</span></td></tr>`).join('')}</tbody></table>
+      ${pager(3)}
     </div>
     <div id="ops-panel-3" style="display:none">
-      <div class="card-head"><h3>数据操作</h3></div>
-      <div style="margin-bottom:8px;color:var(--t2)">SQL 查询（只读）</div>
+      <div class="card-head"><h3>数据操作（只读查询）</h3></div>
+      <div style="margin-bottom:8px;color:var(--t2)">SQL 查询（只读）· 走独立只读 DB 账号，仅 SELECT；单次最多 500 行；记审计日志</div>
       <textarea class="sqlbox">SELECT * FROM user WHERE id = 1;</textarea>
       <div style="text-align:right;margin-top:10px"><span class="btn btn-primary">执行查询</span></div>
-      <div style="margin:16px 0 8px;color:var(--red)">⚠️ 数据修改（需二次确认，禁止 DROP/TRUNCATE，记入管理员操作日志）</div>
-      <textarea class="sqlbox">UPDATE user SET status = 1 WHERE id = 5;</textarea>
-      <div style="text-align:right;margin-top:10px"><span class="btn btn-danger">执行修改</span></div>
+      <div style="margin-top:16px;padding:12px;background:#FAFAFA;border:1px solid var(--border);border-radius:6px;color:var(--t2);font-size:13px">不提供在线改数据：需修复数据请走 SSH + DB 客户端开事务手动操作，或使用预置的运维动作按钮（参数受控、带二次确认与审计）。</div>
     </div>
   </div>`;
 };
@@ -661,13 +658,6 @@ function switchOpsTab(idx){
   card.querySelectorAll(':scope > .tabs .tab').forEach(t=>t.classList.remove('on'));
   card.querySelectorAll(':scope > .tabs .tab')[idx]?.classList.add('on');
   for(let i=0;i<4;i++){const p=document.getElementById('ops-panel-'+i);if(p)p.style.display=i===idx?'':'none';}
-}
-function switchLogTab(idx){
-  const card=document.getElementById('log-panel-0')?.parentElement;
-  if(!card)return;
-  card.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('on'));
-  card.querySelectorAll('.tabs .tab')[idx]?.classList.add('on');
-  for(let i=0;i<2;i++){const p=document.getElementById('log-panel-'+i);if(p)p.style.display=i===idx?'':'none';}
 }
 
 /* ---------- 初始化 ---------- */
