@@ -423,10 +423,10 @@ function openProductModal(mode){
 PAGES.orders=()=>{
   const tabs=[['全部',86,true],['待付款',5],['待发货',8],['待收货',12],['已完成',56],['已取消',3],['退款售后',2]];
   return `
-  <div class="card-head"><h2 class="page-title">订单管理</h2><span class="btn btn-default">导出订单</span></div>
+  <div class="card-head"><h2 class="page-title">订单管理</h2></div>
   <div class="card">
     <div class="tabs">${tabs.map(t=>`<span class="tab ${t[2]?'on':''}" onclick="switchTab(this)">${t[0]} <span class="badge">${t[1]}</span></span>`).join('')}</div>
-    <div class="toolbar"><input class="input" placeholder="🔍 搜索订单号 / 买家姓名"></div>
+    <div class="toolbar"><input class="input" placeholder="🔍 搜索订单号 / 买家昵称 / 收货人姓名"></div>
     <table><thead><tr><th>订单号</th><th>买家</th><th>商品</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr></thead>
     <tbody>
       <tr onclick="toggleOrder(this)" style="cursor:pointer">
@@ -520,14 +520,14 @@ function openUserCoupons(name){
 PAGES.coupons=()=>{
   const cps=[
     ['满100减10','满减券','06.01 ~ 06.30','156/500','已用42 · 核销27%','green','● 进行中',true],
-    ['新人专享5元','无门槛券','长期有效','89/200','已用67 · 核销75%','green','● 进行中',true],
+    ['新人专享5元','无门槛券','领取后30天','89/200','已用67 · 核销75%','green','● 进行中',true],
     ['满200减25','满减券','06.15 ~ 07.15','0/300','未开始','gray','○ 未开始',false],
   ];
   return `
   <div class="card-head"><h2 class="page-title">优惠券管理</h2><span class="btn btn-primary" onclick="openCouponModal('new')">+ 新建券模版</span></div>
   <div class="card">
     <div style="color:var(--t3);font-size:13px;margin-bottom:12px">💡 券模版（规则）+ 用户券（实例）：此处管理券模版，用户券由系统按场景自动下发，无手动领取</div>
-    <div class="tabs"><span class="tab on" onclick="switchTab(this)">全部</span><span class="tab" onclick="switchTab(this)">进行中</span><span class="tab" onclick="switchTab(this)">未开始</span><span class="tab" onclick="switchTab(this)">已结束</span><span class="tab" onclick="switchTab(this)">已停发</span></div>
+    <div class="tabs"><span class="tab on" onclick="switchTab(this)">全部</span><span class="tab" onclick="switchTab(this)">进行中</span><span class="tab" onclick="switchTab(this)">未开始</span><span class="tab" onclick="switchTab(this)">已结束</span><span class="tab" onclick="switchTab(this)">已发完</span><span class="tab" onclick="switchTab(this)">已停发</span></div>
     <div class="toolbar"><input class="input" placeholder="🔍 搜索券名" style="width:240px"><span class="count" style="margin-left:auto">共 ${cps.length} 张券模版</span></div>
     <div class="coupons">${cps.map(c=>`<div class="cpc">
       <div class="st" style="color:${c[5]==='green'?'var(--green)':'var(--t3)'}">${c[6]}</div>
@@ -552,7 +552,9 @@ function openCouponModal(mode,name,started){
     <div class="form-row"><div class="lab">券名称</div><div class="ctl"><input class="input"${isNew?' placeholder="如：满100减10"':` value="${name||''}"`}></div></div>
     <div class="form-row"><div class="lab">券类型</div><div class="ctl"><select class="select"${ld}><option>满减券</option><option>无门槛券</option></select>${lock?' <span style="color:var(--t3);font-size:13px;margin-left:8px">已开始，类型不可改</span>':''}</div></div>
     <div class="form-row"><div class="lab">优惠金额</div><div class="ctl">减 <input class="input" style="width:90px" type="number" min="0"${ld}${isNew?'':' value="10"'}> 元　满 <input class="input" style="width:90px" type="number" min="0"${ld}${isNew?'':' value="100"'}> 元可用 <span style="color:var(--t3);font-size:13px;margin-left:8px">无门槛券隐藏门槛</span></div></div>
-    <div class="form-row"><div class="lab">有效期</div><div class="ctl"><input class="input" style="width:140px" placeholder="开始日期"${isNew?'':' value="2026-06-01"'}> ~ <input class="input" style="width:140px" placeholder="结束日期"${isNew?'':' value="2026-06-30"'}></div></div>
+    <div class="form-row"><div class="lab">有效期类型</div><div class="ctl"><label style="margin-right:16px"><input type="radio" name="vtype" checked${ld}> 固定区间</label><label><input type="radio" name="vtype"${ld}> 领取后 N 天</label>${lock?' <span style="color:var(--t3);font-size:13px;margin-left:8px">已开始，类型不可改</span>':''}</div></div>
+    <div class="form-row"><div class="lab">固定区间</div><div class="ctl"><input class="input" style="width:140px" placeholder="开始日期"${isNew?'':' value="2026-06-01"'}> ~ <input class="input" style="width:140px" placeholder="结束日期"${isNew?'':' value="2026-06-30"'}> <span style="color:var(--t3);font-size:13px;margin-left:8px">所有券同一到期时刻</span></div></div>
+    <div class="form-row"><div class="lab">领取后</div><div class="ctl"><input class="input" style="width:90px" type="number" min="1" placeholder="30"> 天 <span style="color:var(--t3);font-size:13px;margin-left:8px">每张券各自从领取日算（与固定区间二选一）</span></div></div>
     <div class="form-row"><div class="lab">发行总量</div><div class="ctl"><input class="input" style="width:120px" type="number" min="1"${isNew?' placeholder="500"':' value="500"'}> 张 <span style="color:var(--t3);font-size:13px;margin-left:8px">通投全员，每人限领 1 张</span></div></div>
     <div class="form-foot" style="margin-top:20px"><span class="btn btn-default" onclick="closeModal()">取消</span><span class="btn btn-primary" onclick="closeModal()">保存</span></div>`;
   openModal(title,body,560);
@@ -587,8 +589,8 @@ PAGES.settings=()=>`
     <div id="st-panel-1" style="display:none">
       <div class="group-title">支付设置</div>
       <div class="form-row"><div class="lab">微信支付</div><div class="ctl"><span class="toggle" onclick="switchToggle(this)"><i></i></span> <span style="color:var(--t3);margin-left:8px">已启用</span></div></div>
-      <div class="form-row"><div class="lab">商户号</div><div class="ctl"><input class="input" value="**********"></div></div>
-      <div class="form-row"><div class="lab">API 密钥</div><div class="ctl"><input class="input" value="**********"></div></div>
+      <div class="form-row"><div class="lab">商户号</div><div class="ctl"><input class="input" value="1234****90"> <span style="color:var(--t3);font-size:13px;margin-left:8px">非敏感，可编辑</span></div></div>
+      <div class="form-row"><div class="lab">API 密钥</div><div class="ctl"><input class="input" value="****** 已配置" disabled style="background:#f5f5f5;color:var(--t2)"> <span style="color:var(--t3);font-size:13px;margin-left:8px">ⓘ 经环境变量配置、只读，更换密钥改 .env 重启</span></div></div>
       <div class="form-foot"><span class="btn btn-default">重置</span><span class="btn btn-primary">保存</span></div>
     </div>
     <div id="st-panel-2" style="display:none">
@@ -685,7 +687,7 @@ PAGES.ops=()=>{
   return `
   <div class="card-head"><h2 class="page-title">运维管理</h2></div>
   <div class="card">
-    <div class="tabs"><span class="tab on" onclick="switchOpsTab(0)">系统健康</span><span class="tab" onclick="switchOpsTab(1)">操作日志</span><span class="tab" onclick="switchOpsTab(2)">数据操作</span></div>
+    <div class="tabs"><span class="tab on" onclick="switchOpsTab(0)">系统状态</span><span class="tab" onclick="switchOpsTab(1)">操作日志</span><span class="tab" onclick="switchOpsTab(2)">数据操作</span></div>
     <div id="ops-panel-0">
       <div class="group-title">系统健康（技术）</div>
       <div class="ops-stats">
