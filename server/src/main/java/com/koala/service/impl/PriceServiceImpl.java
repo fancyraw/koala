@@ -1,0 +1,217 @@
+package com.koala.service.impl;
+
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.koala.common.exception.BizException;
+import com.koala.common.result.ErrorCode;
+import com.koala.dto.order.OrderItemRequest;
+import com.koala.dto.order.OrderItemView;
+import com.koala.dto.order.OrderPreviewView;
+import com.koala.dto.order.PriceResult;
+import com.koala.dto.order.PricingContext;
+import com.koala.entity.Coupon;
+import com.koala.entity.Product;
+import com.koala.entity.ProductSku;
+import com.koala.entity.UserCoupon;
+import com.koala.mapper.CouponMapper;
+import com.koala.mapper.ProductMapper;
+import com.koala.mapper.ProductSkuMapper;
+import com.koala.mapper.UserCouponMapper;
+import com.koala.service.ConfigService;
+import com.koala.service.PriceService;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+public class PriceServiceImpl implements PriceService {
+
+    private static final BigDecimal MIN_PAY = new BigDecimal("0.01");
+
+    private final ProductSkuMapper skuMapper;
+    private final ProductMapper productMapper;
+    private final CouponMapper couponMapper;
+    private final UserCouponMapper userCouponMapper;
+    private final ConfigService configService;
+
+    public PriceServiceImpl(ProductSkuMapper skuMapper, ProductMapper productMapper,
+                            CouponMapper couponMapper, UserCouponMapper userCouponMapper,
+                            ConfigService configService) {
+        this.skuMapper = skuMapper;
+        this.productMapper = productMapper;
+        this.couponMapper = couponMapper;
+        this.userCouponMapper = userCouponMapper;
+        this.configService = configService;
+    }
+
+    @Override
+    public PricingContext calculate(Long userId, List<OrderItemRequest> items, boolean withUpsell) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. 解析商品项 + 商品合计
+        Set<Long> skuIds = items.stream().map(OrderItemRequest::getSkuId).collect(Collectors.toSet());
+        Map<Long, ProductSku> skuMap = skuMapper.selectBatchIds(skuIds).stream()
+                .collect(Collectors.toMap(ProductSku::getId, s -> s));
+        Set<Long> productIds = skuMap.values().stream().map(ProductSku::getProductId).collect(Collectors.toSet());
+        Map<Long, Product> productMap = productIds.isEmpty() ? java.util.Collections.emptyMap()
+                : productMapper.selectBatchIds(productIds).stream()
+                        .collect(Collectors.toMap(Product::getId, p -> p));
+
+        List<OrderItemView> itemViews = new ArrayList<>();
+        List<ProductSku> orderedSkus = new ArrayList<>();
+        BigDecimal productAmount = BigDecimal.ZERO;
+        for (OrderItemRequest req : items) {
+            ProductSku sku = skuMap.get(req.getSkuId());
+            if (sku == null) {
+                throw new BizException(ErrorCode.DATA_NOT_FOUND.getCode(), "商品规格不存在");
+            }
+            Product product = productMap.get(sku.getProductId());
+            if (product == null || product.getIsValid() == null || product.getIsValid() != 1) {
+                throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "商品已下架");
+            }
+            BigDecimal subtotal = sku.getPrice().multiply(BigDecimal.valueOf(req.getQuantity()));
+            productAmount = productAmount.add(subtotal);
+
+            OrderItemView v = new OrderItemView();
+            v.setProductId(product.getId());
+            v.setSkuId(sku.getId());
+            v.setProductName(product.getName());
+            v.setSkuName(sku.getName());
+            v.setProductImage(product.getMainImage());
+            v.setUnitPrice(sku.getPrice());
+            v.setQuantity(req.getQuantity());
+            v.setSubtotal(subtotal);
+            itemViews.add(v);
+            orderedSkus.add(sku);
+        }
+
+        // 2. 券组合最优：无门槛(面额最大) + 满减(门槛≤合计中面额最大)
+        List<UserCoupon> usable = usableCoupons(userId, now);
+        Map<Long, Coupon> couponMap = usable.isEmpty() ? java.util.Collections.emptyMap()
+                : couponMapper.selectBatchIds(usable.stream().map(UserCoupon::getCouponId).collect(Collectors.toSet()))
+                        .stream().collect(Collectors.toMap(Coupon::getId, c -> c));
+
+        UserCoupon bestNoThreshold = null;
+        BigDecimal bestNoThresholdVal = BigDecimal.ZERO;
+        UserCoupon bestFullReduce = null;
+        BigDecimal bestFullReduceVal = BigDecimal.ZERO;
+        for (UserCoupon uc : usable) {
+            Coupon c = couponMap.get(uc.getCouponId());
+            if (c == null) {
+                continue;
+            }
+            if (c.getType() != null && c.getType() == 2) {
+                if (c.getDiscountAmount().compareTo(bestNoThresholdVal) > 0) {
+                    bestNoThresholdVal = c.getDiscountAmount();
+                    bestNoThreshold = uc;
+                }
+            } else if (c.getType() != null && c.getType() == 1) {
+                BigDecimal threshold = c.getMinSpend() != null ? c.getMinSpend() : BigDecimal.ZERO;
+                if (productAmount.compareTo(threshold) >= 0
+                        && c.getDiscountAmount().compareTo(bestFullReduceVal) > 0) {
+                    bestFullReduceVal = c.getDiscountAmount();
+                    bestFullReduce = uc;
+                }
+            }
+        }
+
+        List<UserCoupon> applied = new ArrayList<>();
+        List<PriceResult.AppliedCoupon> appliedViews = new ArrayList<>();
+        BigDecimal rawDiscount = BigDecimal.ZERO;
+        if (bestNoThreshold != null) {
+            applied.add(bestNoThreshold);
+            appliedViews.add(appliedView(bestNoThreshold, couponMap.get(bestNoThreshold.getCouponId())));
+            rawDiscount = rawDiscount.add(bestNoThresholdVal);
+        }
+        if (bestFullReduce != null) {
+            applied.add(bestFullReduce);
+            appliedViews.add(appliedView(bestFullReduce, couponMap.get(bestFullReduce.getCouponId())));
+            rawDiscount = rawDiscount.add(bestFullReduceVal);
+        }
+        // 券后小计下限 0
+        BigDecimal couponDiscount = rawDiscount.min(productAmount);
+
+        // 3. 运费：包邮门槛以商品合计判断，运费不参与券抵扣
+        BigDecimal baseFee = configService.getDecimal("shipping", "base_fee", new BigDecimal("8"));
+        BigDecimal freeThreshold = configService.getDecimal("shipping", "free_threshold", new BigDecimal("99"));
+        BigDecimal shippingFee = productAmount.compareTo(freeThreshold) >= 0 ? BigDecimal.ZERO : baseFee;
+
+        // 4. 实付 = 商品合计 − 券抵扣 + 运费，最低 0.01
+        BigDecimal payAmount = productAmount.subtract(couponDiscount).add(shippingFee);
+        if (payAmount.compareTo(MIN_PAY) < 0) {
+            payAmount = MIN_PAY;
+        }
+
+        PriceResult price = new PriceResult();
+        price.setProductAmount(productAmount);
+        price.setCouponDiscount(couponDiscount);
+        price.setShippingFee(shippingFee);
+        price.setPayAmount(payAmount);
+        price.setAppliedCoupons(appliedViews);
+
+        PricingContext ctx = new PricingContext();
+        ctx.setItems(itemViews);
+        ctx.setSkus(orderedSkus);
+        ctx.setPrice(price);
+        ctx.setAppliedUserCoupons(applied);
+
+        // 凑单提示：持有但未达门槛的满减券，取补足差额后净增优惠最大的一张
+        if (withUpsell) {
+            ctx.setUpsell(computeUpsell(usable, couponMap, productAmount, bestFullReduceVal));
+        }
+        return ctx;
+    }
+
+    private OrderPreviewView.UpsellHint computeUpsell(List<UserCoupon> usable, Map<Long, Coupon> couponMap,
+                                                      BigDecimal productAmount, BigDecimal currentFullReduce) {
+        OrderPreviewView.UpsellHint best = null;
+        BigDecimal bestExtra = BigDecimal.ZERO;
+        for (UserCoupon uc : usable) {
+            Coupon c = couponMap.get(uc.getCouponId());
+            if (c == null || c.getType() == null || c.getType() != 1) {
+                continue;
+            }
+            BigDecimal threshold = c.getMinSpend() != null ? c.getMinSpend() : BigDecimal.ZERO;
+            if (productAmount.compareTo(threshold) >= 0) {
+                continue; // 已达门槛，非凑单目标
+            }
+            BigDecimal extraSave = c.getDiscountAmount().subtract(currentFullReduce);
+            if (extraSave.compareTo(bestExtra) > 0) {
+                bestExtra = extraSave;
+                OrderPreviewView.UpsellHint hint = new OrderPreviewView.UpsellHint();
+                hint.setCouponId(c.getId());
+                hint.setCouponName(c.getName());
+                hint.setNeedMore(threshold.subtract(productAmount));
+                hint.setExtraSave(extraSave);
+                best = hint;
+            }
+        }
+        return best;
+    }
+
+    private List<UserCoupon> usableCoupons(Long userId, LocalDateTime now) {
+        return userCouponMapper.selectList(Wrappers.<UserCoupon>lambdaQuery()
+                        .eq(UserCoupon::getUserId, userId)
+                        .eq(UserCoupon::getStatus, 0)
+                        .gt(UserCoupon::getExpireAt, now))
+                .stream()
+                .sorted(Comparator.comparing(UserCoupon::getExpireAt))
+                .collect(Collectors.toList());
+    }
+
+    private PriceResult.AppliedCoupon appliedView(UserCoupon uc, Coupon c) {
+        PriceResult.AppliedCoupon v = new PriceResult.AppliedCoupon();
+        v.setUserCouponId(uc.getId());
+        v.setCouponId(c.getId());
+        v.setCouponType(c.getType());
+        v.setCouponName(c.getName());
+        v.setDiscountAmount(c.getDiscountAmount());
+        return v;
+    }
+}
