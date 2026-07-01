@@ -55,4 +55,7 @@ public interface OrderService {
 
     /** 已完成订单手动发起退款(6.5)：5售后中 → 6已退款。 */
     void adminRefund(OrderRefundRequest req);
+
+    /** 售后退款(6.5)：订单须为 5售后中 → 调渠道退款 → 券原路退回 → 5→6 → 发事件。供售后模块复用。 */
+    void refundForAfterSale(String orderNo, String reason);
 }

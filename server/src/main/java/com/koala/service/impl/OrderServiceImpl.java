@@ -511,6 +511,19 @@ public class OrderServiceImpl implements OrderService {
         doRefund(order, req.getReason());
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void refundForAfterSale(String orderNo, String reason) {
+        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, orderNo));
+        if (order == null) {
+            throw new BizException(ErrorCode.DATA_NOT_FOUND);
+        }
+        if (order.getStatus() != 5) {
+            throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单不在售后中，不可退款");
+        }
+        doRefund(order, reason);
+    }
+
     /** 退款处理(6.5)：调渠道 → payment=3 → 未过期券原路退回 → order 5→6 → 发事件。 */
     private void doRefund(Order order, String reason) {
         Payment payment = paymentMapper.selectOne(Wrappers.<Payment>lambdaQuery()
