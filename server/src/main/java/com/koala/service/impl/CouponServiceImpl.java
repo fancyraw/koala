@@ -90,6 +90,14 @@ public class CouponServiceImpl implements CouponService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public int expireOverdue() {
+        return userCouponMapper.update(null, Wrappers.<UserCoupon>lambdaUpdate()
+                .set(UserCoupon::getStatus, 2)
+                .eq(UserCoupon::getStatus, 0)
+                .lt(UserCoupon::getExpireAt, LocalDateTime.now()));
+    }
+
     /** 候选券模板：正常且未发完；固定区间还须在窗内。 */
     private List<Coupon> listGrantable(LocalDateTime now) {
         List<Coupon> all = couponMapper.selectList(Wrappers.<Coupon>lambdaQuery()

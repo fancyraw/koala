@@ -102,6 +102,7 @@ com/koala/dto/product/CategoryView.class
 com/koala/dto/product/CategorySaveRequest.class
 com/koala/entity/Product.class
 com/koala/controller/AddressController.class
+com/koala/task/OrderScheduler.class
 com/koala/service/impl/UserAuthServiceImpl.class
 com/koala/config/RedisConfig.class
 com/koala/entity/UserAuth.class

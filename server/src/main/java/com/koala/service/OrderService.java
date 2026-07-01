@@ -58,4 +58,12 @@ public interface OrderService {
 
     /** 售后退款(6.5)：订单须为 5售后中 → 调渠道退款 → 券原路退回 → 5→6 → 发事件。供售后模块复用。 */
     void refundForAfterSale(String orderNo, String reason);
+
+    // ---- 定时任务(7.4) ----
+
+    /** 超时取消(每分钟)：status=0 且 expire_at<now → 释放库存/券 → 4已取消。返回处理条数。 */
+    int autoCancelTimeout();
+
+    /** 自动确认收货(每天)：status=2 且 shipped_at + auto_confirm_days < now → 3已完成。返回处理条数。 */
+    int autoConfirmReceived();
 }

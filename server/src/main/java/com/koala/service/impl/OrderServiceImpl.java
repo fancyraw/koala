@@ -524,6 +524,59 @@ public class OrderServiceImpl implements OrderService {
         doRefund(order, reason);
     }
 
+    // ---- 定时任务(7.4) ----
+
+    @Override
+    public int autoCancelTimeout() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Order> timedOut = orderMapper.selectList(Wrappers.<Order>lambdaQuery()
+                .eq(Order::getStatus, 0)
+                .lt(Order::getExpireAt, now));
+        int count = 0;
+        for (Order order : timedOut) {
+            try {
+                self.releaseTimedOut(order.getOrderNo());
+                count++;
+            } catch (Exception e) {
+                log.error("超时取消订单失败: {}", order.getOrderNo(), e);
+            }
+        }
+        return count;
+    }
+
+    /** 单订单超时释放(独立事务)：仅 status=0 时释放，CAS 防并发支付。 */
+    @Transactional(rollbackFor = Exception.class)
+    public void releaseTimedOut(String orderNo) {
+        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, orderNo));
+        if (order == null || order.getStatus() != 0) {
+            return;
+        }
+        releaseAssets(order, 4);
+    }
+
+    @Override
+    public int autoConfirmReceived() {
+        int days = configService.getInt("order", "auto_confirm_days", 7);
+        LocalDateTime deadline = LocalDateTime.now().minusDays(days);
+        List<Order> due = orderMapper.selectList(Wrappers.<Order>lambdaQuery()
+                .eq(Order::getStatus, 2)
+                .isNotNull(Order::getShippedAt)
+                .lt(Order::getShippedAt, deadline));
+        int count = 0;
+        LocalDateTime now = LocalDateTime.now();
+        for (Order order : due) {
+            int affected = orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
+                    .set(Order::getStatus, 3)
+                    .set(Order::getCompletedAt, now)
+                    .eq(Order::getOrderNo, order.getOrderNo())
+                    .eq(Order::getStatus, 2));
+            if (affected > 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     /** 退款处理(6.5)：调渠道 → payment=3 → 未过期券原路退回 → order 5→6 → 发事件。 */
     private void doRefund(Order order, String reason) {
         Payment payment = paymentMapper.selectOne(Wrappers.<Payment>lambdaQuery()

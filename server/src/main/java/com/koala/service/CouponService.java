@@ -12,4 +12,7 @@ public interface CouponService {
 
     /** 我的券：status 可空(全部)或 0/1/2 过滤；未使用按到期升序、含临期标记。 */
     List<UserCouponView> mine(Long userId, Integer status);
+
+    /** 过期巡检(每天,7.4)：未使用(0)且已到期 → 2已过期。返回处理条数。 */
+    int expireOverdue();
 }
