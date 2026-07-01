@@ -1,0 +1,122 @@
+package com.koala.service.impl;
+
+import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.koala.common.exception.BizException;
+import com.koala.common.result.ErrorCode;
+import com.koala.config.WechatProperties;
+import com.koala.dto.admin.AcceptInviteRequest;
+import com.koala.dto.admin.AdminView;
+import com.koala.dto.admin.InviteResponse;
+import com.koala.entity.Admin;
+import com.koala.infra.wechat.WechatAuthClient;
+import com.koala.mapper.AdminMapper;
+import com.koala.service.AdminManageService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+/** 管理员管理(6.10)：一次性邀请 token 存 Redis(TTL 30min),扫码入库待审核,超管启用。 */
+@Slf4j
+@Service
+public class AdminManageServiceImpl implements AdminManageService {
+
+    private static final String INVITE_KEY = "admin:invite:token:";
+    private static final long TTL_SECONDS = 30 * 60;
+
+    private final StringRedisTemplate redis;
+    private final WechatProperties wechatProps;
+    private final WechatAuthClient wechatAuthClient;
+    private final AdminMapper adminMapper;
+
+    public AdminManageServiceImpl(StringRedisTemplate redis, WechatProperties wechatProps,
+                                  WechatAuthClient wechatAuthClient, AdminMapper adminMapper) {
+        this.redis = redis;
+        this.wechatProps = wechatProps;
+        this.wechatAuthClient = wechatAuthClient;
+        this.adminMapper = adminMapper;
+    }
+
+    @Override
+    public InviteResponse invite() {
+        String token = IdUtil.fastSimpleUUID();
+        redis.opsForValue().set(INVITE_KEY + token, "1", TTL_SECONDS, TimeUnit.SECONDS);
+        return new InviteResponse(token, buildInviteUrl(token), TTL_SECONDS);
+    }
+
+    @Override
+    public void accept(AcceptInviteRequest req) {
+        // 一次性消费 token：delete 返回 true 表示存在且本次抢到，转发重放只有一次成功
+        Boolean consumed = redis.delete(INVITE_KEY + req.getInviteToken());
+        if (!Boolean.TRUE.equals(consumed)) {
+            throw new BizException(ErrorCode.TOKEN_INVALID, "邀请链接已失效或已被使用");
+        }
+        String openid = wechatAuthClient.openCode2Openid(req.getCode());
+        Long exists = adminMapper.selectCount(Wrappers.<Admin>lambdaQuery()
+                .eq(Admin::getWxOpenid, openid));
+        if (exists != null && exists > 0) {
+            throw new BizException(ErrorCode.DUPLICATE_SUBMIT, "该微信已是管理员");
+        }
+        Admin admin = new Admin();
+        admin.setWxOpenid(openid);
+        admin.setNickname("待审核管理员");
+        admin.setAvatarUrl("");
+        admin.setIsSuper(0);
+        admin.setIsValid(0);
+        adminMapper.insert(admin);
+    }
+
+    @Override
+    public List<AdminView> list() {
+        return adminMapper.selectList(Wrappers.<Admin>lambdaQuery()
+                        .orderByDesc(Admin::getId))
+                .stream().map(AdminView::of).collect(Collectors.toList());
+    }
+
+    @Override
+    public void setStatus(Long id, boolean valid, Long operatorId) {
+        if (id.equals(operatorId)) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "不能修改自身状态");
+        }
+        Admin admin = adminMapper.selectById(id);
+        if (admin == null) {
+            throw new BizException(ErrorCode.DATA_NOT_FOUND);
+        }
+        if (admin.getIsSuper() != null && admin.getIsSuper() == 1) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "不能禁用/修改超级管理员");
+        }
+        Admin patch = new Admin();
+        patch.setId(id);
+        patch.setIsValid(valid ? 1 : 0);
+        adminMapper.updateById(patch);
+    }
+
+    private String buildInviteUrl(String token) {
+        WechatProperties.Open open = wechatProps.getOpen();
+        if (!StringUtils.hasText(open.getAppid())) {
+            // 本地联调：直接给回调地址，扫码端手动带 code 触发 accept
+            return "/api/v1/admin/admins/accept?inviteToken=" + token + "&code=mock_admin_new";
+        }
+        String redirect = urlEncode("https://域名/koala/admin/invite/callback?inviteToken=" + token);
+        return "https://open.weixin.qq.com/connect/qrconnect"
+                + "?appid=" + open.getAppid()
+                + "&redirect_uri=" + redirect
+                + "&response_type=code&scope=snsapi_login"
+                + "&state=" + token + "#wechat_redirect";
+    }
+
+    private String urlEncode(String value) {
+        try {
+            return URLEncoder.encode(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return value;
+        }
+    }
+}

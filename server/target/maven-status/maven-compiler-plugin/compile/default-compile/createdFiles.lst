@@ -14,6 +14,7 @@ com/koala/infra/pay/NotifyResult.class
 com/koala/service/impl/HomeServiceImpl.class
 com/koala/dto/order/OrderItemRequest.class
 com/koala/dto/order/OrderSubmitView.class
+com/koala/dto/admin/AcceptInviteRequest.class
 com/koala/service/ConfigService.class
 com/koala/dto/coupon/CouponSaveRequest.class
 com/koala/config/MyBatisPlusConfig.class
@@ -39,6 +40,7 @@ com/koala/service/impl/AdminCouponServiceImpl.class
 com/koala/dto/product/AdminProductView.class
 com/koala/infra/pay/PrepayCommand.class
 com/koala/service/BannerService.class
+com/koala/dto/admin/InviteResponse.class
 com/koala/dto/address/AddressSaveRequest.class
 com/koala/entity/CartItem.class
 com/koala/mapper/RegionMapper.class
@@ -46,6 +48,7 @@ com/koala/config/RedisConfig.class
 com/koala/entity/UserAuth.class
 com/koala/dto/product/SortRequest.class
 com/koala/common/auth/TokenBlacklist.class
+com/koala/service/AdminManageService.class
 com/koala/config/SuperAdminInitializer.class
 com/koala/infra/pay/WechatPayChannel.class
 com/koala/dto/order/OrderItemView.class
@@ -54,6 +57,7 @@ com/koala/dto/content/ConfigSaveRequest.class
 com/koala/entity/ProductCategory.class
 com/koala/controller/admin/AdminUserController.class
 com/koala/infra/pay/PrepayResult.class
+com/koala/controller/admin/AdminManageController.class
 com/koala/entity/SysConfig.class
 com/koala/service/AfterSaleService.class
 com/koala/service/UserService.class
@@ -82,6 +86,7 @@ com/koala/dto/content/HomeView.class
 com/koala/controller/admin/AdminConfigController.class
 com/koala/dto/cart/CartRemoveRequest.class
 com/koala/common/auth/JwtUtil$ParsedToken.class
+com/koala/dto/admin/AdminStatusRequest.class
 com/koala/event/OrderEventListener.class
 com/koala/dto/address/IdRequest.class
 com/koala/dto/cart/CartView.class
@@ -116,6 +121,7 @@ com/koala/controller/HomeController.class
 com/koala/mapper/OrderCouponMapper.class
 com/koala/dto/coupon/AdminCouponView.class
 com/koala/entity/Admin.class
+com/koala/service/impl/AdminManageServiceImpl.class
 com/koala/dto/content/BannerSaveRequest.class
 com/koala/service/AdminAuthService.class
 com/koala/service/impl/AfterSaleServiceImpl.class
@@ -129,6 +135,7 @@ com/koala/dto/order/AdminOrderView.class
 com/koala/entity/Order.class
 com/koala/dto/content/ConfigSaveRequest$ConfigItem.class
 com/koala/controller/admin/AdminOrderController.class
+com/koala/dto/admin/AdminView.class
 com/koala/dto/auth/UserLoginRequest.class
 com/koala/common/result/ErrorCode.class
 com/koala/mapper/ProductSkuMapper.class
