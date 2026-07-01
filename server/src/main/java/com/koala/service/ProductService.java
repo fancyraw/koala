@@ -6,6 +6,8 @@ import com.koala.dto.product.ProductCardView;
 import com.koala.dto.product.ProductDetailView;
 import com.koala.dto.product.ProductSaveRequest;
 
+import java.util.List;
+
 public interface ProductService {
 
     /** C端商品列表：仅上架，可按分类/关键词过滤，分页。 */
@@ -13,6 +15,12 @@ public interface ProductService {
 
     /** C端商品详情：仅上架，否则视为不存在。 */
     ProductDetailView detailForUser(Long id);
+
+    /** 首页热销：上架商品按销量降序取前 N。 */
+    List<ProductCardView> hotSelling(int limit);
+
+    /** 首页推荐：上架且推荐商品按销量降序取前 N。 */
+    List<ProductCardView> recommended(int limit);
 
     /** 后台商品列表：可按分类/关键词/状态过滤，分页。 */
     PageResult<AdminProductView> listForAdmin(Long categoryId, String keyword, Integer status, long page, long size);

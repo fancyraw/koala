@@ -67,11 +67,37 @@ public class ProductServiceImpl implements ProductService {
         if (p.getRecords().isEmpty()) {
             return PageResult.empty(page, size);
         }
+        return new PageResult<>(toCards(p.getRecords()), p.getTotal(), p.getCurrent(), p.getSize());
+    }
 
-        Map<Long, List<ProductSku>> skuMap = skusByProduct(productIds(p.getRecords()));
-        Map<Long, String> tagNames = tagNames(p.getRecords());
+    @Override
+    public List<ProductCardView> hotSelling(int limit) {
+        List<Product> products = productMapper.selectList(Wrappers.<Product>lambdaQuery()
+                .eq(Product::getIsValid, 1)
+                .orderByDesc(Product::getSalesCount)
+                .orderByDesc(Product::getId)
+                .last("LIMIT " + limit));
+        return toCards(products);
+    }
 
-        List<ProductCardView> list = p.getRecords().stream().map(prod -> {
+    @Override
+    public List<ProductCardView> recommended(int limit) {
+        List<Product> products = productMapper.selectList(Wrappers.<Product>lambdaQuery()
+                .eq(Product::getIsValid, 1)
+                .eq(Product::getIsRecommended, 1)
+                .orderByDesc(Product::getSalesCount)
+                .orderByDesc(Product::getId)
+                .last("LIMIT " + limit));
+        return toCards(products);
+    }
+
+    private List<ProductCardView> toCards(List<Product> products) {
+        if (products.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<Long, List<ProductSku>> skuMap = skusByProduct(productIds(products));
+        Map<Long, String> tagNames = tagNames(products);
+        return products.stream().map(prod -> {
             List<ProductSku> skus = skuMap.getOrDefault(prod.getId(), Collections.emptyList());
             ProductCardView v = new ProductCardView();
             v.setId(prod.getId());
@@ -85,7 +111,6 @@ public class ProductServiceImpl implements ProductService {
             v.setSoldOut(isSoldOut(skus));
             return v;
         }).collect(Collectors.toList());
-        return new PageResult<>(list, p.getTotal(), p.getCurrent(), p.getSize());
     }
 
     @Override
