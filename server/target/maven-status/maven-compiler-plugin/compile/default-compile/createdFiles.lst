@@ -7,6 +7,7 @@ com/koala/common/result/Result.class
 com/koala/mapper/ProductTagMapper.class
 com/koala/dto/aftersale/AfterSaleAuditRequest.class
 com/koala/dto/cart/CartItemView.class
+com/koala/controller/UserProfileController.class
 com/koala/dto/product/SortItem.class
 com/koala/controller/UserAuthController.class
 com/koala/infra/pay/NotifyResult.class
@@ -32,6 +33,7 @@ com/koala/service/impl/CouponServiceImpl.class
 com/koala/common/auth/AuthContext.class
 com/koala/dto/address/AddressView.class
 com/koala/service/impl/PriceServiceImpl.class
+com/koala/dto/user/ProfileView.class
 com/koala/infra/pay/RefundResult.class
 com/koala/service/impl/AdminCouponServiceImpl.class
 com/koala/dto/product/AdminProductView.class
@@ -50,9 +52,11 @@ com/koala/dto/order/OrderItemView.class
 com/koala/dto/order/OrderPreviewView$UpsellHint.class
 com/koala/dto/content/ConfigSaveRequest.class
 com/koala/entity/ProductCategory.class
+com/koala/controller/admin/AdminUserController.class
 com/koala/infra/pay/PrepayResult.class
 com/koala/entity/SysConfig.class
 com/koala/service/AfterSaleService.class
+com/koala/service/UserService.class
 com/koala/dto/aftersale/AfterSaleTrackingRequest.class
 com/koala/service/CouponService.class
 com/koala/dto/region/RegionNode.class
@@ -62,6 +66,7 @@ com/koala/service/ProductService.class
 com/koala/controller/admin/AdminProductController.class
 com/koala/service/OrderService.class
 com/koala/dto/order/PricingContext.class
+com/koala/dto/user/AdminUserDetailView.class
 com/koala/config/MyMetaObjectHandler.class
 com/koala/common/result/PageResult.class
 com/koala/dto/order/PriceResult.class
@@ -94,6 +99,7 @@ com/koala/service/impl/ConfigServiceImpl.class
 com/koala/dto/aftersale/AfterSaleView.class
 com/koala/dto/order/OrderPreviewRequest.class
 com/koala/dto/order/PriceResult$AppliedCoupon.class
+com/koala/dto/user/AdminUserView.class
 com/koala/dto/product/ProductCardView.class
 com/koala/common/dto/PageQuery.class
 com/koala/service/CartService.class
@@ -151,6 +157,7 @@ com/koala/entity/Product.class
 com/koala/controller/AddressController.class
 com/koala/task/OrderScheduler.class
 com/koala/service/impl/UserAuthServiceImpl.class
+com/koala/dto/user/UserStatusRequest.class
 com/koala/mapper/AfterSaleMapper.class
 com/koala/dto/coupon/GrantResultView.class
 com/koala/dto/order/OrderRefundRequest.class
@@ -166,6 +173,7 @@ com/koala/service/UserAuthService.class
 com/koala/dto/product/ProductSaveRequest.class
 com/koala/config/AdminProperties.class
 com/koala/service/TagService.class
+com/koala/service/impl/UserServiceImpl.class
 com/koala/dto/order/OrderSubmitRequest.class
 com/koala/dto/coupon/GrantDetailView.class
 com/koala/dto/cart/CartAddRequest.class
@@ -178,6 +186,7 @@ com/koala/service/impl/BannerServiceImpl.class
 com/koala/service/RegionService.class
 com/koala/entity/OrderCoupon.class
 com/koala/service/AddressService.class
+com/koala/dto/user/ProfileUpdateRequest.class
 com/koala/service/impl/ProductServiceImpl.class
 com/koala/dto/auth/QrcodeCheckResponse.class
 com/koala/mapper/CouponMapper.class

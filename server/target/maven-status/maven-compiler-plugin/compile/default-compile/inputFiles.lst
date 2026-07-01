@@ -25,6 +25,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/ProductDetailView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/CategoryService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/aftersale/AfterSaleView.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/user/ProfileView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/OrderItem.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/ProductCategory.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/SortItem.java
@@ -60,9 +61,12 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/Coupon.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/auth/AuthInterceptor.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/cart/CartRemoveRequest.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/impl/UserServiceImpl.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/impl/RegionServiceImpl.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/auth/Principal.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/user/AdminUserDetailView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/ProductCardView.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/admin/AdminUserController.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/infra/pay/PrepayCommand.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/AfterSaleMapper.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/impl/CouponServiceImpl.java
@@ -109,6 +113,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/dto/PageQuery.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/Region.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/content/ConfigSaveRequest.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/user/ProfileUpdateRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/OrderShipRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/infra/pay/PaymentChannel.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/SysConfig.java
@@ -129,6 +134,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/result/ErrorCode.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/address/AddressView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/PriceResult.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/UserProfileController.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/AdminAuthService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/Product.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/OrderRefundRequest.java
@@ -162,6 +168,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/BannerService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/TagSaveRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/CategoryView.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/user/UserStatusRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/task/OrderScheduler.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/infra/wechat/WechatAuthClient.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/impl/OrderServiceImpl.java
@@ -171,7 +178,9 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/UserAuthMapper.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/HomeController.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/result/PageResult.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/user/AdminUserView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/AdminMapper.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/UserService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/CategorySaveRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/AdminCouponService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/admin/AdminAuthController.java
