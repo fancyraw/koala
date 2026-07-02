@@ -9,6 +9,7 @@ com/koala/dto/dashboard/TrendPoint.class
 com/koala/mapper/ProductTagMapper.class
 com/koala/dto/aftersale/AfterSaleAuditRequest.class
 com/koala/dto/cart/CartItemView.class
+com/koala/infra/storage/UploadCredential.class
 com/koala/controller/UserProfileController.class
 com/koala/dto/product/SortItem.class
 com/koala/controller/UserAuthController.class
@@ -55,6 +56,7 @@ com/koala/common/auth/TokenBlacklist.class
 com/koala/service/AdminManageService.class
 com/koala/config/SuperAdminInitializer.class
 com/koala/infra/pay/WechatPayChannel.class
+com/koala/infra/storage/QiniuStorage.class
 com/koala/dto/order/OrderItemView.class
 com/koala/dto/order/OrderPreviewView$UpsellHint.class
 com/koala/dto/content/ConfigSaveRequest.class
@@ -77,12 +79,14 @@ com/koala/dto/order/PricingContext.class
 com/koala/dto/user/AdminUserDetailView.class
 com/koala/config/MyMetaObjectHandler.class
 com/koala/common/result/PageResult.class
+com/koala/config/StorageProperties.class
 com/koala/dto/order/PriceResult.class
 com/koala/mapper/BannerMapper.class
 com/koala/dto/order/OrderPreviewView.class
 com/koala/common/entity/BaseEntity.class
 com/koala/service/impl/OrderServiceImpl.class
 com/koala/dto/product/SkuView.class
+com/koala/controller/admin/AdminUploadController.class
 com/koala/KoalaApplication.class
 com/koala/dto/dashboard/DashboardView.class
 com/koala/entity/ProductSku.class
@@ -105,6 +109,7 @@ com/koala/service/impl/CategoryServiceImpl.class
 com/koala/service/impl/CartServiceImpl.class
 com/koala/mapper/OrderMapper.class
 com/koala/dto/aftersale/AfterSaleApplyRequest.class
+com/koala/infra/storage/FileStorage.class
 com/koala/service/CategoryService.class
 com/koala/service/impl/ConfigServiceImpl.class
 com/koala/dto/aftersale/AfterSaleView.class
