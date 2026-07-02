@@ -21,6 +21,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/ProductSku.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/OrderService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/content/HomeView.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/DashboardService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/KoalaApplication.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/Order.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/admin/AdminOrderController.java
@@ -32,6 +33,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/auth/Principal.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/user/AdminUserDetailView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/ProductCardView.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/dashboard/DashboardView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/infra/pay/PrepayCommand.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/impl/CouponServiceImpl.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/auth/JwtUtil.java
@@ -44,6 +46,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/admin/AdminAfterSaleController.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/CartItem.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/AdminProductView.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/dashboard/TrendPoint.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/admin/InviteResponse.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/admin/AdminView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/impl/AdminCouponServiceImpl.java
@@ -53,6 +56,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/content/BannerView.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/PaymentMapper.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/dto/PageQuery.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/admin/AdminDashboardController.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/infra/pay/PaymentChannel.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/SysConfig.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/UserAuthService.java
@@ -66,7 +70,9 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/AdminAuthService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/OrderRefundRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/admin/AdminBannerController.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/impl/DashboardServiceImpl.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/OrderNoRequest.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/dashboard/Pending.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/entity/Banner.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/UserMapper.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/OrderPayRequest.java
@@ -145,6 +151,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/OrderPreviewRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/infra/pay/NotifyResult.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/RegionController.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/dashboard/TodayOverview.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/aftersale/AfterSaleNoRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/UserCouponMapper.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/aftersale/AfterSaleTrackingRequest.java
@@ -180,6 +187,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/admin/AdminTagController.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/entity/BaseEntity.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/product/ProductStatusRequest.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/dashboard/HotProduct.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/OrderItemMapper.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/web/TraceFilter.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/mapper/CouponMapper.java

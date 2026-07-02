@@ -4,6 +4,8 @@ com/koala/controller/CartController.class
 com/koala/controller/admin/AdminAfterSaleController.class
 com/koala/controller/admin/AdminCouponController.class
 com/koala/common/result/Result.class
+com/koala/service/impl/DashboardServiceImpl.class
+com/koala/dto/dashboard/TrendPoint.class
 com/koala/mapper/ProductTagMapper.class
 com/koala/dto/aftersale/AfterSaleAuditRequest.class
 com/koala/dto/cart/CartItemView.class
@@ -18,12 +20,14 @@ com/koala/dto/admin/AcceptInviteRequest.class
 com/koala/service/ConfigService.class
 com/koala/dto/coupon/CouponSaveRequest.class
 com/koala/config/MyBatisPlusConfig.class
+com/koala/service/DashboardService.class
 com/koala/mapper/UserAddressMapper.class
 com/koala/entity/Payment.class
 com/koala/common/auth/Principal.class
 com/koala/dto/product/TagView.class
 com/koala/dto/product/ProductStatusRequest.class
 com/koala/controller/admin/AdminBannerController.class
+com/koala/dto/dashboard/HotProduct.class
 com/koala/service/impl/TagServiceImpl.class
 com/koala/dto/order/OrderView.class
 com/koala/infra/pay/PaymentChannel.class
@@ -80,6 +84,7 @@ com/koala/common/entity/BaseEntity.class
 com/koala/service/impl/OrderServiceImpl.class
 com/koala/dto/product/SkuView.class
 com/koala/KoalaApplication.class
+com/koala/dto/dashboard/DashboardView.class
 com/koala/entity/ProductSku.class
 com/koala/mapper/ProductMapper.class
 com/koala/dto/content/HomeView.class
@@ -88,6 +93,7 @@ com/koala/dto/cart/CartRemoveRequest.class
 com/koala/common/auth/JwtUtil$ParsedToken.class
 com/koala/dto/admin/AdminStatusRequest.class
 com/koala/event/OrderEventListener.class
+com/koala/dto/dashboard/Pending.class
 com/koala/dto/address/IdRequest.class
 com/koala/dto/cart/CartView.class
 com/koala/infra/wechat/WechatAuthClient.class
@@ -115,6 +121,7 @@ com/koala/dto/coupon/UserCouponView.class
 com/koala/mapper/CartItemMapper.class
 com/koala/mapper/UserMapper.class
 com/koala/controller/AfterSaleController.class
+com/koala/dto/dashboard/TodayOverview.class
 com/koala/service/PriceService.class
 com/koala/dto/aftersale/AdminAfterSaleView.class
 com/koala/controller/HomeController.class
@@ -152,6 +159,7 @@ com/koala/mapper/AdminMapper.class
 com/koala/entity/User.class
 com/koala/common/auth/JwtUtil.class
 com/koala/dto/product/SkuSaveItem.class
+com/koala/controller/admin/AdminDashboardController.class
 com/koala/service/HomeService.class
 com/koala/entity/Banner.class
 com/koala/dto/order/OrderShipRequest.class
