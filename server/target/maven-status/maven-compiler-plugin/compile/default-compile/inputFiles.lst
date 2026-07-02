@@ -150,6 +150,7 @@
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/service/CartService.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/order/OrderPreviewRequest.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/infra/pay/NotifyResult.java
+/Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/common/web/MaintenanceInterceptor.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/controller/RegionController.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/dashboard/TodayOverview.java
 /Users/zhangxiaoxiao1/Desktop/koala/server/src/main/java/com/koala/dto/aftersale/AfterSaleNoRequest.java

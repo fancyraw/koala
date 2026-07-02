@@ -1,6 +1,7 @@
 package com.koala.config;
 
 import com.koala.common.auth.AuthInterceptor;
+import com.koala.common.web.MaintenanceInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -10,14 +11,20 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
+    private final MaintenanceInterceptor maintenanceInterceptor;
 
-    public WebMvcConfig(AuthInterceptor authInterceptor) {
+    public WebMvcConfig(AuthInterceptor authInterceptor, MaintenanceInterceptor maintenanceInterceptor) {
         this.authInterceptor = authInterceptor;
+        this.maintenanceInterceptor = maintenanceInterceptor;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/actuator/**");
+        // 维护模式拦截器置于鉴权之后(见 6.9)
+        registry.addInterceptor(maintenanceInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/actuator/**");
     }

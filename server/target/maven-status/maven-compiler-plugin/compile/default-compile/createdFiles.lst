@@ -208,4 +208,5 @@ com/koala/mapper/CouponMapper.class
 com/koala/controller/RegionController.class
 com/koala/controller/admin/AdminTagController.class
 com/koala/entity/Region.class
+com/koala/common/web/MaintenanceInterceptor.class
 com/koala/event/OrderPaidEvent.class
