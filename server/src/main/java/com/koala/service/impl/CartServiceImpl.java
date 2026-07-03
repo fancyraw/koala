@@ -1,6 +1,5 @@
 package com.koala.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.dto.cart.CartAddRequest;
@@ -10,9 +9,10 @@ import com.koala.dto.cart.CartView;
 import com.koala.entity.CartItem;
 import com.koala.entity.Product;
 import com.koala.entity.ProductSku;
-import com.koala.mapper.CartItemMapper;
-import com.koala.mapper.ProductMapper;
-import com.koala.mapper.ProductSkuMapper;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.CartItemRepository;
+import com.koala.repository.ProductRepository;
+import com.koala.repository.ProductSkuRepository;
 import com.koala.service.CartService;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -27,31 +27,30 @@ import java.util.stream.Collectors;
 @Service
 public class CartServiceImpl implements CartService {
 
-    private final CartItemMapper cartMapper;
-    private final ProductSkuMapper skuMapper;
-    private final ProductMapper productMapper;
+    private final CartItemRepository cartRepository;
+    private final ProductSkuRepository skuRepository;
+    private final ProductRepository productRepository;
 
-    public CartServiceImpl(CartItemMapper cartMapper, ProductSkuMapper skuMapper, ProductMapper productMapper) {
-        this.cartMapper = cartMapper;
-        this.skuMapper = skuMapper;
-        this.productMapper = productMapper;
+    public CartServiceImpl(CartItemRepository cartRepository, ProductSkuRepository skuRepository,
+                           ProductRepository productRepository) {
+        this.cartRepository = cartRepository;
+        this.skuRepository = skuRepository;
+        this.productRepository = productRepository;
     }
 
     @Override
     public CartView list(Long userId) {
-        List<CartItem> items = cartMapper.selectList(Wrappers.<CartItem>lambdaQuery()
-                .eq(CartItem::getUserId, userId)
-                .orderByDesc(CartItem::getId));
+        List<CartItem> items = cartRepository.findByUser(userId);
         if (items.isEmpty()) {
             return emptyView();
         }
 
         Set<Long> skuIds = items.stream().map(CartItem::getSkuId).collect(Collectors.toSet());
-        Map<Long, ProductSku> skuMap = skuMapper.selectBatchIds(skuIds).stream()
+        Map<Long, ProductSku> skuMap = skuRepository.findByIds(skuIds).stream()
                 .collect(Collectors.toMap(ProductSku::getId, s -> s));
         Set<Long> productIds = skuMap.values().stream().map(ProductSku::getProductId).collect(Collectors.toSet());
         Map<Long, Product> productMap = productIds.isEmpty() ? Collections.emptyMap()
-                : productMapper.selectBatchIds(productIds).stream()
+                : productRepository.findByIds(productIds).stream()
                         .collect(Collectors.toMap(Product::getId, p -> p));
 
         CartView view = new CartView();
@@ -73,45 +72,41 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartView add(Long userId, CartAddRequest req) {
-        ProductSku sku = skuMapper.selectById(req.getSkuId());
+        ProductSku sku = skuRepository.findById(req.getSkuId());
         if (sku == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        Product product = productMapper.selectById(sku.getProductId());
-        if (product == null || product.getIsValid() == null || product.getIsValid() != 1) {
+        Product product = productRepository.findById(sku.getProductId());
+        if (product == null || !ValidFlag.isEnabled(product.getIsValid())) {
             throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "商品已下架");
         }
 
-        CartItem existing = cartMapper.selectOne(Wrappers.<CartItem>lambdaQuery()
-                .eq(CartItem::getUserId, userId)
-                .eq(CartItem::getSkuId, req.getSkuId()));
+        CartItem existing = cartRepository.findByUserAndSku(userId, req.getSkuId());
         int targetQty = (existing != null ? existing.getQuantity() : 0) + req.getQuantity();
         checkStockAndLimit(sku, product, targetQty);
 
         if (existing != null) {
             existing.setQuantity(targetQty);
-            existing.setChecked(1);
-            cartMapper.updateById(existing);
+            existing.setChecked(ValidFlag.ENABLED.code());
+            cartRepository.updateById(existing);
         } else {
             CartItem item = new CartItem();
             item.setUserId(userId);
             item.setProductId(product.getId());
             item.setSkuId(req.getSkuId());
             item.setQuantity(req.getQuantity());
-            item.setChecked(1);
+            item.setChecked(ValidFlag.ENABLED.code());
             try {
-                cartMapper.insert(item);
+                cartRepository.insert(item);
             } catch (DuplicateKeyException e) {
                 // 并发下同 SKU 已插入，转为累加
-                CartItem now = cartMapper.selectOne(Wrappers.<CartItem>lambdaQuery()
-                        .eq(CartItem::getUserId, userId)
-                        .eq(CartItem::getSkuId, req.getSkuId()));
+                CartItem now = cartRepository.findByUserAndSku(userId, req.getSkuId());
                 if (now != null) {
                     int merged = now.getQuantity() + req.getQuantity();
                     checkStockAndLimit(sku, product, merged);
                     now.setQuantity(merged);
-                    now.setChecked(1);
-                    cartMapper.updateById(now);
+                    now.setChecked(ValidFlag.ENABLED.code());
+                    cartRepository.updateById(now);
                 }
             }
         }
@@ -122,8 +117,8 @@ public class CartServiceImpl implements CartService {
     public CartView update(Long userId, CartUpdateRequest req) {
         CartItem item = requireOwned(userId, req.getId());
         if (req.getQuantity() != null) {
-            ProductSku sku = skuMapper.selectById(item.getSkuId());
-            Product product = sku != null ? productMapper.selectById(sku.getProductId()) : null;
+            ProductSku sku = skuRepository.findById(item.getSkuId());
+            Product product = sku != null ? productRepository.findById(sku.getProductId()) : null;
             if (sku == null || product == null) {
                 throw new BizException(ErrorCode.DATA_NOT_FOUND);
             }
@@ -131,19 +126,15 @@ public class CartServiceImpl implements CartService {
             item.setQuantity(req.getQuantity());
         }
         if (req.getChecked() != null) {
-            item.setChecked(req.getChecked() ? 1 : 0);
+            item.setChecked(ValidFlag.of(req.getChecked()));
         }
-        cartMapper.updateById(item);
+        cartRepository.updateById(item);
         return list(userId);
     }
 
     @Override
     public CartView remove(Long userId, List<Long> ids) {
-        if (ids != null && !ids.isEmpty()) {
-            cartMapper.delete(Wrappers.<CartItem>lambdaQuery()
-                    .eq(CartItem::getUserId, userId)
-                    .in(CartItem::getId, ids));
-        }
+        cartRepository.deleteByUserAndIds(userId, ids);
         return list(userId);
     }
 
@@ -160,7 +151,7 @@ public class CartServiceImpl implements CartService {
     }
 
     private CartItem requireOwned(Long userId, Long id) {
-        CartItem item = cartMapper.selectById(id);
+        CartItem item = cartRepository.findById(id);
         if (item == null || !item.getUserId().equals(userId)) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
@@ -176,10 +167,10 @@ public class CartServiceImpl implements CartService {
         v.setProductId(item.getProductId());
         v.setSkuId(item.getSkuId());
         v.setQuantity(item.getQuantity());
-        v.setChecked(item.getChecked() != null && item.getChecked() == 1);
+        v.setChecked(ValidFlag.isEnabled(item.getChecked()));
 
         boolean invalid = sku == null || product == null
-                || product.getIsValid() == null || product.getIsValid() != 1;
+                || !ValidFlag.isEnabled(product.getIsValid());
         v.setInvalid(invalid);
         if (sku != null) {
             v.setSkuName(sku.getName());

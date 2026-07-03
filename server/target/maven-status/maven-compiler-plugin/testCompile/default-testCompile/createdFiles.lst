@@ -1,0 +1,5 @@
+com/koala/service/CartServiceImplTest.class
+com/koala/service/AddressServiceImplTest.class
+com/koala/service/AfterSaleServiceImplTest.class
+com/koala/service/CouponServiceImplTest.class
+com/koala/service/PriceServiceImplTest.class

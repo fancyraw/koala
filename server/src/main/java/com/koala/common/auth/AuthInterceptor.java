@@ -5,8 +5,9 @@ import com.koala.common.result.ErrorCode;
 import com.koala.common.result.Result;
 import com.koala.entity.Admin;
 import com.koala.entity.User;
-import com.koala.mapper.AdminMapper;
-import com.koala.mapper.UserMapper;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.AdminRepository;
+import com.koala.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -50,16 +51,16 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
     private final TokenBlacklist blacklist;
-    private final UserMapper userMapper;
-    private final AdminMapper adminMapper;
+    private final UserRepository userRepository;
+    private final AdminRepository adminRepository;
     private final ObjectMapper objectMapper;
 
     public AuthInterceptor(JwtUtil jwtUtil, TokenBlacklist blacklist,
-                           UserMapper userMapper, AdminMapper adminMapper, ObjectMapper objectMapper) {
+                           UserRepository userRepository, AdminRepository adminRepository, ObjectMapper objectMapper) {
         this.jwtUtil = jwtUtil;
         this.blacklist = blacklist;
-        this.userMapper = userMapper;
-        this.adminMapper = adminMapper;
+        this.userRepository = userRepository;
+        this.adminRepository = adminRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -91,8 +92,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             if (!principal.isAdmin()) {
                 return reject(response, ErrorCode.FORBIDDEN);
             }
-            Admin admin = adminMapper.selectById(principal.getId());
-            if (admin == null || admin.getIsValid() == null || admin.getIsValid() != 1) {
+            Admin admin = adminRepository.findById(principal.getId());
+            if (admin == null || !ValidFlag.ENABLED.is(admin.getIsValid())) {
                 return reject(response, ErrorCode.ACCOUNT_DISABLED);
             }
             // 「管理员管理」仅超管可操作（能力位，非角色分层）
@@ -103,8 +104,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             if (!principal.isUser()) {
                 return reject(response, ErrorCode.FORBIDDEN);
             }
-            User user = userMapper.selectById(principal.getId());
-            if (user == null || user.getIsValid() == null || user.getIsValid() != 1) {
+            User user = userRepository.findById(principal.getId());
+            if (user == null || !ValidFlag.ENABLED.is(user.getIsValid())) {
                 return reject(response, ErrorCode.ACCOUNT_DISABLED);
             }
         }

@@ -1,8 +1,7 @@
 package com.koala.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.entity.SysConfig;
-import com.koala.mapper.SysConfigMapper;
+import com.koala.repository.SysConfigRepository;
 import com.koala.service.ConfigService;
 import org.springframework.stereotype.Service;
 
@@ -16,18 +15,18 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class ConfigServiceImpl implements ConfigService {
 
-    private final SysConfigMapper sysConfigMapper;
+    private final SysConfigRepository configRepository;
     private final Map<String, String> cache = new ConcurrentHashMap<>();
 
-    public ConfigServiceImpl(SysConfigMapper sysConfigMapper) {
-        this.sysConfigMapper = sysConfigMapper;
+    public ConfigServiceImpl(SysConfigRepository configRepository) {
+        this.configRepository = configRepository;
     }
 
     @PostConstruct
     @Override
     public void reload() {
         Map<String, String> fresh = new ConcurrentHashMap<>();
-        for (SysConfig c : sysConfigMapper.selectList(null)) {
+        for (SysConfig c : configRepository.findAll()) {
             fresh.put(cacheKey(c.getConfigGroup(), c.getConfigKey()), c.getConfigValue());
         }
         cache.clear();
@@ -68,28 +67,24 @@ public class ConfigServiceImpl implements ConfigService {
 
     @Override
     public List<SysConfig> listByGroup(String group) {
-        return sysConfigMapper.selectList(Wrappers.<SysConfig>lambdaQuery()
-                .eq(SysConfig::getConfigGroup, group)
-                .orderByAsc(SysConfig::getId));
+        return configRepository.findByGroup(group);
     }
 
     @Override
     public void save(String group, String key, String value, Long adminId) {
-        SysConfig existing = sysConfigMapper.selectOne(Wrappers.<SysConfig>lambdaQuery()
-                .eq(SysConfig::getConfigGroup, group)
-                .eq(SysConfig::getConfigKey, key));
+        SysConfig existing = configRepository.findByGroupAndKey(group, key);
         if (existing == null) {
             SysConfig c = new SysConfig();
             c.setConfigGroup(group);
             c.setConfigKey(key);
             c.setConfigValue(value);
             c.setUpdatedBy(adminId != null ? adminId : 0L);
-            sysConfigMapper.insert(c);
+            configRepository.insert(c);
         } else {
             existing.setConfigValue(value);
             existing.setUpdatedBy(adminId != null ? adminId : 0L);
             existing.setUpdatedAt(LocalDateTime.now());
-            sysConfigMapper.updateById(existing);
+            configRepository.updateById(existing);
         }
         cache.put(cacheKey(group, key), value);
     }

@@ -1,11 +1,11 @@
 package com.koala.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.dto.region.RegionNode;
 import com.koala.entity.Region;
-import com.koala.mapper.RegionMapper;
+import com.koala.enums.RegionLevel;
+import com.koala.repository.RegionRepository;
 import com.koala.service.RegionService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -16,38 +16,34 @@ import java.util.stream.Collectors;
 @Service
 public class RegionServiceImpl implements RegionService {
 
-    private final RegionMapper regionMapper;
+    private final RegionRepository regionRepository;
 
-    public RegionServiceImpl(RegionMapper regionMapper) {
-        this.regionMapper = regionMapper;
+    public RegionServiceImpl(RegionRepository regionRepository) {
+        this.regionRepository = regionRepository;
     }
 
     @Override
     public List<RegionNode> listChildren(String parentCode) {
-        List<Region> children;
-        if (StringUtils.hasText(parentCode)) {
-            children = regionMapper.selectList(Wrappers.<Region>lambdaQuery()
-                    .eq(Region::getParentCode, parentCode)
-                    .orderByAsc(Region::getCode));
-        } else {
-            children = regionMapper.selectList(Wrappers.<Region>lambdaQuery()
-                    .eq(Region::getLevel, 1)
-                    .orderByAsc(Region::getCode));
-        }
+        List<Region> children = StringUtils.hasText(parentCode)
+                ? regionRepository.findByParent(parentCode)
+                : regionRepository.findByLevel(RegionLevel.PROVINCE.code());
         // 区/县(level=3)为叶子，无下级
         return children.stream()
-                .map(r -> new RegionNode(r.getCode(), r.getName(), r.getLevel() != null && r.getLevel() < 3))
+                .map(r -> new RegionNode(r.getCode(), r.getName(),
+                        !RegionLevel.DISTRICT.is(r.getLevel())))
                 .collect(Collectors.toList());
     }
 
     @Override
     public Region[] validateChain(String provinceCode, String cityCode, String districtCode) {
-        Region province = regionMapper.selectById(provinceCode);
-        Region city = regionMapper.selectById(cityCode);
-        Region district = regionMapper.selectById(districtCode);
+        Region province = regionRepository.findByCode(provinceCode);
+        Region city = regionRepository.findByCode(cityCode);
+        Region district = regionRepository.findByCode(districtCode);
 
         boolean ok = province != null && city != null && district != null
-                && province.getLevel() == 1 && city.getLevel() == 2 && district.getLevel() == 3
+                && RegionLevel.PROVINCE.is(province.getLevel())
+                && RegionLevel.CITY.is(city.getLevel())
+                && RegionLevel.DISTRICT.is(district.getLevel())
                 && provinceCode.equals(city.getParentCode())
                 && cityCode.equals(district.getParentCode());
         if (!ok) {

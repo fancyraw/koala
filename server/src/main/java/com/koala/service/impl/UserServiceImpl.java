@@ -1,10 +1,6 @@
 package com.koala.service.impl;
 
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
@@ -14,24 +10,26 @@ import com.koala.dto.user.ProfileUpdateRequest;
 import com.koala.dto.user.ProfileView;
 import com.koala.entity.Order;
 import com.koala.entity.User;
-import com.koala.mapper.OrderMapper;
-import com.koala.mapper.UserMapper;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.OrderRepository;
+import com.koala.repository.UserRepository;
 import com.koala.service.UserService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final UserMapper userMapper;
-    private final OrderMapper orderMapper;
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
 
-    public UserServiceImpl(UserMapper userMapper, OrderMapper orderMapper) {
-        this.userMapper = userMapper;
-        this.orderMapper = orderMapper;
+    public UserServiceImpl(UserRepository userRepository, OrderRepository orderRepository) {
+        this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
     }
 
     @Override
@@ -46,17 +44,13 @@ public class UserServiceImpl implements UserService {
         patch.setId(userId);
         patch.setNickname(req.getNickname());
         patch.setAvatarUrl(req.getAvatarUrl() != null ? req.getAvatarUrl() : "");
-        userMapper.updateById(patch);
+        userRepository.updateById(patch);
         return ProfileView.of(requireUser(userId));
     }
 
     @Override
     public PageResult<AdminUserView> listForAdmin(String keyword, Integer status, long page, long size) {
-        LambdaQueryWrapper<User> q = Wrappers.<User>lambdaQuery()
-                .like(StrUtil.isNotBlank(keyword), User::getNickname, keyword)
-                .eq(status != null, User::getIsValid, status)
-                .orderByDesc(User::getId);
-        IPage<User> p = userMapper.selectPage(new Page<>(page, size), q);
+        IPage<User> p = userRepository.pageForAdmin(keyword, status, page, size);
         if (p.getRecords().isEmpty()) {
             return PageResult.empty(page, size);
         }
@@ -68,13 +62,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public AdminUserDetailView detailForAdmin(Long id) {
         AdminUserDetailView v = AdminUserDetailView.of(requireUser(id));
-        List<Order> paidOrders = orderMapper.selectList(Wrappers.<Order>lambdaQuery()
-                .eq(Order::getUserId, id)
-                .isNotNull(Order::getPaidAt));
+        List<Order> paidOrders = orderRepository.findPaidByUser(id);
         v.setPaidOrderCount(paidOrders.size());
         v.setTotalPaidAmount(paidOrders.stream()
                 .map(Order::getPayAmount)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
         return v;
     }
@@ -84,12 +76,12 @@ public class UserServiceImpl implements UserService {
         requireUser(id);
         User patch = new User();
         patch.setId(id);
-        patch.setIsValid(valid ? 1 : 0);
-        userMapper.updateById(patch);
+        patch.setIsValid(ValidFlag.of(valid));
+        userRepository.updateById(patch);
     }
 
     private User requireUser(Long id) {
-        User user = userMapper.selectById(id);
+        User user = userRepository.findById(id);
         if (user == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }

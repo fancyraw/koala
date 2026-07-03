@@ -3,8 +3,6 @@ package com.koala.service.impl;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
@@ -20,7 +18,6 @@ import com.koala.dto.order.OrderSubmitView;
 import com.koala.dto.order.OrderView;
 import com.koala.dto.order.PriceResult;
 import com.koala.dto.order.PricingContext;
-import com.koala.entity.Coupon;
 import com.koala.entity.Order;
 import com.koala.entity.OrderCoupon;
 import com.koala.entity.OrderItem;
@@ -30,6 +27,9 @@ import com.koala.entity.ProductSku;
 import com.koala.entity.User;
 import com.koala.entity.UserAddress;
 import com.koala.entity.UserCoupon;
+import com.koala.enums.OrderStatus;
+import com.koala.enums.PaymentStatus;
+import com.koala.enums.ValidFlag;
 import com.koala.event.OrderPaidEvent;
 import com.koala.event.RefundedEvent;
 import com.koala.infra.pay.NotifyResult;
@@ -39,16 +39,16 @@ import com.koala.infra.pay.PrepayCommand;
 import com.koala.infra.pay.PrepayResult;
 import com.koala.infra.pay.RefundCommand;
 import com.koala.infra.pay.RefundResult;
-import com.koala.mapper.CouponMapper;
-import com.koala.mapper.OrderCouponMapper;
-import com.koala.mapper.OrderItemMapper;
-import com.koala.mapper.OrderMapper;
-import com.koala.mapper.PaymentMapper;
-import com.koala.mapper.ProductMapper;
-import com.koala.mapper.ProductSkuMapper;
-import com.koala.mapper.UserAddressMapper;
-import com.koala.mapper.UserCouponMapper;
-import com.koala.mapper.UserMapper;
+import com.koala.repository.CouponRepository;
+import com.koala.repository.OrderCouponRepository;
+import com.koala.repository.OrderItemRepository;
+import com.koala.repository.OrderRepository;
+import com.koala.repository.PaymentRepository;
+import com.koala.repository.ProductRepository;
+import com.koala.repository.ProductSkuRepository;
+import com.koala.repository.UserAddressRepository;
+import com.koala.repository.UserCouponRepository;
+import com.koala.repository.UserRepository;
 import com.koala.service.ConfigService;
 import com.koala.service.OrderService;
 import com.koala.service.PriceService;
@@ -81,16 +81,16 @@ public class OrderServiceImpl implements OrderService {
     private static final String LOCK_PREFIX = "lock:order:submit:";
     private static final int SUBMIT_TOKEN_TTL_MINUTES = 30;
 
-    private final OrderMapper orderMapper;
-    private final OrderItemMapper orderItemMapper;
-    private final OrderCouponMapper orderCouponMapper;
-    private final PaymentMapper paymentMapper;
-    private final ProductSkuMapper skuMapper;
-    private final ProductMapper productMapper;
-    private final CouponMapper couponMapper;
-    private final UserCouponMapper userCouponMapper;
-    private final UserAddressMapper addressMapper;
-    private final UserMapper userMapper;
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final OrderCouponRepository orderCouponRepository;
+    private final PaymentRepository paymentRepository;
+    private final ProductSkuRepository skuRepository;
+    private final ProductRepository productRepository;
+    private final CouponRepository couponRepository;
+    private final UserCouponRepository userCouponRepository;
+    private final UserAddressRepository addressRepository;
+    private final UserRepository userRepository;
     private final PriceService priceService;
     private final ConfigService configService;
     private final PaymentChannelFactory paymentChannelFactory;
@@ -103,23 +103,24 @@ public class OrderServiceImpl implements OrderService {
     @Lazy
     private OrderServiceImpl self;
 
-    public OrderServiceImpl(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
-                            OrderCouponMapper orderCouponMapper, PaymentMapper paymentMapper,
-                            ProductSkuMapper skuMapper, ProductMapper productMapper, CouponMapper couponMapper,
-                            UserCouponMapper userCouponMapper, UserAddressMapper addressMapper,
-                            UserMapper userMapper, PriceService priceService, ConfigService configService,
+    public OrderServiceImpl(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
+                            OrderCouponRepository orderCouponRepository, PaymentRepository paymentRepository,
+                            ProductSkuRepository skuRepository, ProductRepository productRepository,
+                            CouponRepository couponRepository,
+                            UserCouponRepository userCouponRepository, UserAddressRepository addressRepository,
+                            UserRepository userRepository, PriceService priceService, ConfigService configService,
                             PaymentChannelFactory paymentChannelFactory, RedissonClient redisson,
                             StringRedisTemplate redis, ApplicationEventPublisher eventPublisher) {
-        this.orderMapper = orderMapper;
-        this.orderItemMapper = orderItemMapper;
-        this.orderCouponMapper = orderCouponMapper;
-        this.paymentMapper = paymentMapper;
-        this.skuMapper = skuMapper;
-        this.productMapper = productMapper;
-        this.couponMapper = couponMapper;
-        this.userCouponMapper = userCouponMapper;
-        this.addressMapper = addressMapper;
-        this.userMapper = userMapper;
+        this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.orderCouponRepository = orderCouponRepository;
+        this.paymentRepository = paymentRepository;
+        this.skuRepository = skuRepository;
+        this.productRepository = productRepository;
+        this.couponRepository = couponRepository;
+        this.userCouponRepository = userCouponRepository;
+        this.addressRepository = addressRepository;
+        this.userRepository = userRepository;
         this.priceService = priceService;
         this.configService = configService;
         this.paymentChannelFactory = paymentChannelFactory;
@@ -141,7 +142,7 @@ public class OrderServiceImpl implements OrderService {
         view.setAppliedCoupons(p.getAppliedCoupons());
         view.setUpsell(ctx.getUpsell());
         if (req.getAddressId() != null) {
-            UserAddress addr = addressMapper.selectById(req.getAddressId());
+            UserAddress addr = addressRepository.findById(req.getAddressId());
             if (addr != null && addr.getUserId().equals(userId)) {
                 view.setAddressId(addr.getId());
                 view.setReceiverName(addr.getName());
@@ -162,7 +163,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.DUPLICATE_SUBMIT);
         }
 
-        UserAddress addr = addressMapper.selectById(req.getAddressId());
+        UserAddress addr = addressRepository.findById(req.getAddressId());
         if (addr == null || !addr.getUserId().equals(userId)) {
             throw new BizException(ErrorCode.ADDRESS_INVALID);
         }
@@ -198,11 +199,7 @@ public class OrderServiceImpl implements OrderService {
         for (int i = 0; i < req.getItems().size(); i++) {
             ProductSku sku = ctx.getSkus().get(i);
             int qty = req.getItems().get(i).getQuantity();
-            int affected = skuMapper.update(null, Wrappers.<ProductSku>lambdaUpdate()
-                    .setSql("stock = stock - " + qty)
-                    .eq(ProductSku::getId, sku.getId())
-                    .ge(ProductSku::getStock, qty));
-            if (affected == 0) {
+            if (skuRepository.deductStock(sku.getId(), qty) == 0) {
                 throw new BizException(ErrorCode.STOCK_NOT_ENOUGH.getCode(),
                         "「" + ctx.getItems().get(i).getProductName() + "」库存不足");
             }
@@ -223,12 +220,12 @@ public class OrderServiceImpl implements OrderService {
         order.setCouponDiscount(price.getCouponDiscount());
         order.setShippingFee(price.getShippingFee());
         order.setPayAmount(price.getPayAmount());
-        order.setStatus(0);
+        order.setStatus(OrderStatus.WAIT_PAY.code());
         order.setRemark(req.getRemark() != null ? req.getRemark() : "");
-        order.setUserDeleted(0);
+        order.setUserDeleted(ValidFlag.DISABLED.code());
         order.setExpireAt(now.plusMinutes(timeoutMinutes));
         order.setVersion(0);
-        orderMapper.insert(order);
+        orderRepository.insert(order);
 
         for (OrderItemView v : ctx.getItems()) {
             OrderItem item = new OrderItem();
@@ -241,17 +238,12 @@ public class OrderServiceImpl implements OrderService {
             item.setUnitPrice(v.getUnitPrice());
             item.setQuantity(v.getQuantity());
             item.setSubtotal(v.getSubtotal());
-            orderItemMapper.insert(item);
+            orderItemRepository.insert(item);
         }
 
         // e. 锁定券：0→3 + lock_order_no；写 order_coupon
         for (UserCoupon uc : ctx.getAppliedUserCoupons()) {
-            int affected = userCouponMapper.update(null, Wrappers.<UserCoupon>lambdaUpdate()
-                    .set(UserCoupon::getStatus, 3)
-                    .set(UserCoupon::getLockOrderNo, orderNo)
-                    .eq(UserCoupon::getId, uc.getId())
-                    .eq(UserCoupon::getStatus, 0));
-            if (affected == 0) {
+            if (userCouponRepository.lockForOrder(uc.getId(), orderNo) == 0) {
                 throw new BizException(ErrorCode.COUPON_UNAVAILABLE.getCode(), "优惠券已失效，请重新下单");
             }
             PriceResult.AppliedCoupon av = price.getAppliedCoupons().stream()
@@ -262,7 +254,7 @@ public class OrderServiceImpl implements OrderService {
             oc.setCouponId(uc.getCouponId());
             oc.setCouponType(av != null ? av.getCouponType() : 0);
             oc.setDiscountAmount(av != null ? av.getDiscountAmount() : BigDecimal.ZERO);
-            orderCouponMapper.insert(oc);
+            orderCouponRepository.insert(oc);
         }
 
         // 建 payment(待支付)
@@ -270,8 +262,8 @@ public class OrderServiceImpl implements OrderService {
         payment.setOrderNo(orderNo);
         payment.setChannel(configService.get("payment", "active_channel", "wechat"));
         payment.setPayAmount(price.getPayAmount());
-        payment.setStatus(0);
-        paymentMapper.insert(payment);
+        payment.setStatus(PaymentStatus.PENDING.code());
+        paymentRepository.insert(payment);
 
         OrderSubmitView view = new OrderSubmitView();
         view.setOrderNo(orderNo);
@@ -282,7 +274,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public PrepayResult pay(Long userId, String orderNo) {
         Order order = requireOwnedOrder(userId, orderNo);
-        if (order.getStatus() != 0) {
+        if (!OrderStatus.WAIT_PAY.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单不可支付");
         }
         if (order.getExpireAt() != null && order.getExpireAt().isBefore(LocalDateTime.now())) {
@@ -312,58 +304,34 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public boolean handlePaid(NotifyResult notify) {
         String orderNo = notify.getOrderNo();
-        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, orderNo));
+        Order order = orderRepository.findByNo(orderNo);
         if (order == null) {
             return false;
         }
         // 幂等：非待付款即视为已处理
-        if (order.getStatus() != 0) {
+        if (!OrderStatus.WAIT_PAY.is(order.getStatus())) {
             return true;
         }
         LocalDateTime now = LocalDateTime.now();
         // order 0→1 CAS
-        int affected = orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                .set(Order::getStatus, 1)
-                .set(Order::getPaidAt, now)
-                .eq(Order::getOrderNo, orderNo)
-                .eq(Order::getStatus, 0));
-        if (affected == 0) {
+        if (orderRepository.markPaidCas(orderNo, now) == 0) {
             return true; // 并发已处理
         }
         // 券 3→1 核销 + coupon.used_count+1
-        List<OrderCoupon> ocs = orderCouponMapper.selectList(Wrappers.<OrderCoupon>lambdaQuery()
-                .eq(OrderCoupon::getOrderNo, orderNo));
-        for (OrderCoupon oc : ocs) {
-            int ucAffected = userCouponMapper.update(null, Wrappers.<UserCoupon>lambdaUpdate()
-                    .set(UserCoupon::getStatus, 1)
-                    .set(UserCoupon::getUsedAt, now)
-                    .eq(UserCoupon::getId, oc.getUserCouponId())
-                    .eq(UserCoupon::getStatus, 3));
-            if (ucAffected > 0) {
-                couponMapper.update(null, Wrappers.<Coupon>lambdaUpdate()
-                        .setSql("used_count = used_count + 1")
-                        .eq(Coupon::getId, oc.getCouponId()));
+        for (OrderCoupon oc : orderCouponRepository.findByOrderNo(orderNo)) {
+            if (userCouponRepository.redeem(oc.getUserCouponId(), now) > 0) {
+                couponRepository.incrementUsedCount(oc.getCouponId());
             }
         }
         // payment 置成功(回调交易号)
-        paymentMapper.update(null, Wrappers.<Payment>lambdaUpdate()
-                .set(Payment::getStatus, 1)
-                .set(Payment::getTransactionId, notify.getTransactionId())
-                .set(Payment::getPaidAt, now)
-                .eq(Payment::getOrderNo, orderNo)
-                .eq(Payment::getStatus, 0));
+        paymentRepository.markSuccess(orderNo, notify.getTransactionId(), now);
         eventPublisher.publishEvent(new OrderPaidEvent(this, orderNo));
         return true;
     }
 
     @Override
     public PageResult<OrderView> myOrders(Long userId, Integer status, long page, long size) {
-        IPage<Order> p = orderMapper.selectPage(new Page<>(page, size),
-                Wrappers.<Order>lambdaQuery()
-                        .eq(Order::getUserId, userId)
-                        .eq(Order::getUserDeleted, 0)
-                        .eq(status != null, Order::getStatus, status)
-                        .orderByDesc(Order::getId));
+        IPage<Order> p = orderRepository.pageByUser(userId, status, page, size);
         if (p.getRecords().isEmpty()) {
             return PageResult.empty(page, size);
         }
@@ -378,36 +346,29 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderView detail(Long userId, String orderNo) {
         Order order = requireOwnedOrder(userId, orderNo);
-        List<OrderItem> items = orderItemMapper.selectList(Wrappers.<OrderItem>lambdaQuery()
-                .eq(OrderItem::getOrderNo, orderNo));
-        return toView(order, items);
+        return toView(order, orderItemRepository.findByOrderNo(orderNo));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancel(Long userId, String orderNo) {
         Order order = requireOwnedOrder(userId, orderNo);
-        if (order.getStatus() != 0) {
+        if (!OrderStatus.WAIT_PAY.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅待付款订单可取消");
         }
-        releaseAssets(order, 4);
+        releaseAssets(order, OrderStatus.CANCELED.code());
     }
 
     @Override
     public void confirm(Long userId, String orderNo) {
         Order order = requireOwnedOrder(userId, orderNo);
-        if (order.getStatus() == 3) {
+        if (OrderStatus.COMPLETED.is(order.getStatus())) {
             return; // 幂等
         }
-        if (order.getStatus() != 2) {
+        if (!OrderStatus.WAIT_RECEIVE.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅待收货订单可确认收货");
         }
-        int affected = orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                .set(Order::getStatus, 3)
-                .set(Order::getCompletedAt, LocalDateTime.now())
-                .eq(Order::getOrderNo, orderNo)
-                .eq(Order::getStatus, 2));
-        if (affected == 0) {
+        if (orderRepository.markCompletedCas(orderNo, LocalDateTime.now()) == 0) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR);
         }
     }
@@ -415,12 +376,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void deleteByUser(Long userId, String orderNo) {
         Order order = requireOwnedOrder(userId, orderNo);
-        if (!(order.getStatus() == 3 || order.getStatus() == 4 || order.getStatus() == 6)) {
+        if (!(OrderStatus.COMPLETED.is(order.getStatus()) || OrderStatus.CANCELED.is(order.getStatus())
+                || OrderStatus.REFUNDED.is(order.getStatus()))) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅已完成/已取消/已退款订单可删除");
         }
-        orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                .set(Order::getUserDeleted, 1)
-                .eq(Order::getOrderNo, orderNo));
+        orderRepository.markUserDeleted(orderNo);
     }
 
     // ---- 后台 ----
@@ -430,27 +390,15 @@ public class OrderServiceImpl implements OrderService {
         final String kw = keyword != null ? keyword.trim() : null;
         Set<Long> matchedUserIds = Collections.emptySet();
         if (kw != null && !kw.isEmpty()) {
-            matchedUserIds = userMapper.selectList(Wrappers.<User>lambdaQuery()
-                            .like(User::getNickname, kw).select(User::getId))
-                    .stream().map(User::getId).collect(Collectors.toSet());
+            matchedUserIds = new java.util.HashSet<>(userRepository.findIdsByNicknameLike(kw));
         }
-        final Set<Long> uids = matchedUserIds;
-        IPage<Order> p = orderMapper.selectPage(new Page<>(page, size),
-                Wrappers.<Order>lambdaQuery()
-                        .eq(status != null, Order::getStatus, status)
-                        .and(kw != null && !kw.isEmpty(), w -> {
-                            w.like(Order::getOrderNo, kw).or().like(Order::getReceiverName, kw);
-                            if (!uids.isEmpty()) {
-                                w.or().in(Order::getUserId, uids);
-                            }
-                        })
-                        .orderByDesc(Order::getId));
+        IPage<Order> p = orderRepository.pageForAdmin(status, kw, matchedUserIds, page, size);
         if (p.getRecords().isEmpty()) {
             return PageResult.empty(page, size);
         }
         Map<String, List<OrderItem>> itemMap = itemsByOrderNo(
                 p.getRecords().stream().map(Order::getOrderNo).collect(Collectors.toList()));
-        Map<Long, String> nickMap = userMapper.selectBatchIds(
+        Map<Long, String> nickMap = userRepository.findByIds(
                         p.getRecords().stream().map(Order::getUserId).collect(Collectors.toSet()))
                 .stream().collect(Collectors.toMap(User::getId, User::getNickname));
         List<AdminOrderView> list = p.getRecords().stream()
@@ -462,33 +410,26 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public AdminOrderView adminDetail(String orderNo) {
-        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, orderNo));
+        Order order = orderRepository.findByNo(orderNo);
         if (order == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        List<OrderItem> items = orderItemMapper.selectList(Wrappers.<OrderItem>lambdaQuery()
-                .eq(OrderItem::getOrderNo, orderNo));
-        User user = userMapper.selectById(order.getUserId());
+        List<OrderItem> items = orderItemRepository.findByOrderNo(orderNo);
+        User user = userRepository.findById(order.getUserId());
         return toAdminView(order, items, user != null ? user.getNickname() : null);
     }
 
     @Override
     public void ship(OrderShipRequest req) {
-        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, req.getNo()));
+        Order order = orderRepository.findByNo(req.getNo());
         if (order == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        if (order.getStatus() != 1) {
+        if (!OrderStatus.WAIT_SHIP.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅待发货订单可发货");
         }
-        int affected = orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                .set(Order::getStatus, 2)
-                .set(Order::getLogisticsCompany, req.getLogisticsCompany())
-                .set(Order::getLogisticsNo, req.getLogisticsNo())
-                .set(Order::getShippedAt, LocalDateTime.now())
-                .eq(Order::getOrderNo, req.getNo())
-                .eq(Order::getStatus, 1));
-        if (affected == 0) {
+        if (orderRepository.markShippedCas(req.getNo(), req.getLogisticsCompany(),
+                req.getLogisticsNo(), LocalDateTime.now()) == 0) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR);
         }
     }
@@ -496,29 +437,26 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void adminRefund(OrderRefundRequest req) {
-        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, req.getNo()));
+        Order order = orderRepository.findByNo(req.getNo());
         if (order == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        if (order.getStatus() != 3) {
+        if (!OrderStatus.COMPLETED.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅已完成订单可手动退款");
         }
         // 3→5 售后中
-        orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                .set(Order::getStatus, 5)
-                .eq(Order::getOrderNo, req.getNo())
-                .eq(Order::getStatus, 3));
+        orderRepository.updateStatusCas(req.getNo(), OrderStatus.COMPLETED.code(), OrderStatus.AFTER_SALE.code());
         doRefund(order, req.getReason());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void refundForAfterSale(String orderNo, String reason) {
-        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, orderNo));
+        Order order = orderRepository.findByNo(orderNo);
         if (order == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        if (order.getStatus() != 5) {
+        if (!OrderStatus.AFTER_SALE.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单不在售后中，不可退款");
         }
         doRefund(order, reason);
@@ -528,10 +466,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public int autoCancelTimeout() {
-        LocalDateTime now = LocalDateTime.now();
-        List<Order> timedOut = orderMapper.selectList(Wrappers.<Order>lambdaQuery()
-                .eq(Order::getStatus, 0)
-                .lt(Order::getExpireAt, now));
+        List<Order> timedOut = orderRepository.findTimedOutUnpaid(LocalDateTime.now());
         int count = 0;
         for (Order order : timedOut) {
             try {
@@ -547,30 +482,22 @@ public class OrderServiceImpl implements OrderService {
     /** 单订单超时释放(独立事务)：仅 status=0 时释放，CAS 防并发支付。 */
     @Transactional(rollbackFor = Exception.class)
     public void releaseTimedOut(String orderNo) {
-        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, orderNo));
-        if (order == null || order.getStatus() != 0) {
+        Order order = orderRepository.findByNo(orderNo);
+        if (order == null || !OrderStatus.WAIT_PAY.is(order.getStatus())) {
             return;
         }
-        releaseAssets(order, 4);
+        releaseAssets(order, OrderStatus.CANCELED.code());
     }
 
     @Override
     public int autoConfirmReceived() {
         int days = configService.getInt("order", "auto_confirm_days", 7);
         LocalDateTime deadline = LocalDateTime.now().minusDays(days);
-        List<Order> due = orderMapper.selectList(Wrappers.<Order>lambdaQuery()
-                .eq(Order::getStatus, 2)
-                .isNotNull(Order::getShippedAt)
-                .lt(Order::getShippedAt, deadline));
+        List<Order> due = orderRepository.findAutoConfirmDue(deadline);
         int count = 0;
         LocalDateTime now = LocalDateTime.now();
         for (Order order : due) {
-            int affected = orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                    .set(Order::getStatus, 3)
-                    .set(Order::getCompletedAt, now)
-                    .eq(Order::getOrderNo, order.getOrderNo())
-                    .eq(Order::getStatus, 2));
-            if (affected > 0) {
+            if (orderRepository.markCompletedCas(order.getOrderNo(), now) > 0) {
                 count++;
             }
         }
@@ -579,9 +506,8 @@ public class OrderServiceImpl implements OrderService {
 
     /** 退款处理(6.5)：调渠道 → payment=3 → 未过期券原路退回 → order 5→6 → 发事件。 */
     private void doRefund(Order order, String reason) {
-        Payment payment = paymentMapper.selectOne(Wrappers.<Payment>lambdaQuery()
-                .eq(Payment::getOrderNo, order.getOrderNo())
-                .eq(Payment::getStatus, 1));
+        Payment payment = paymentRepository.findByOrderNoAndStatus(
+                order.getOrderNo(), PaymentStatus.SUCCESS.code());
         PaymentChannel channel = paymentChannelFactory.get(
                 payment != null ? payment.getChannel() : configService.get("payment", "active_channel", "wechat"));
         RefundCommand cmd = new RefundCommand();
@@ -595,51 +521,28 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.REFUND_FAILED);
         }
         if (payment != null) {
-            paymentMapper.update(null, Wrappers.<Payment>lambdaUpdate()
-                    .set(Payment::getStatus, 3)
-                    .eq(Payment::getId, payment.getId()));
+            paymentRepository.markRefunded(payment.getId());
         }
         // 未过期券原路退回 → 0
         LocalDateTime now = LocalDateTime.now();
-        List<OrderCoupon> ocs = orderCouponMapper.selectList(Wrappers.<OrderCoupon>lambdaQuery()
-                .eq(OrderCoupon::getOrderNo, order.getOrderNo()));
-        for (OrderCoupon oc : ocs) {
-            userCouponMapper.update(null, Wrappers.<UserCoupon>lambdaUpdate()
-                    .set(UserCoupon::getStatus, 0)
-                    .set(UserCoupon::getUsedAt, null)
-                    .set(UserCoupon::getLockOrderNo, null)
-                    .eq(UserCoupon::getId, oc.getUserCouponId())
-                    .gt(UserCoupon::getExpireAt, now));
+        for (OrderCoupon oc : orderCouponRepository.findByOrderNo(order.getOrderNo())) {
+            userCouponRepository.restoreIfNotExpired(oc.getUserCouponId(), now);
         }
         // 5→6 已退款(终态)
-        orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                .set(Order::getStatus, 6)
-                .eq(Order::getOrderNo, order.getOrderNo())
-                .eq(Order::getStatus, 5));
+        orderRepository.updateStatusCas(order.getOrderNo(),
+                OrderStatus.AFTER_SALE.code(), OrderStatus.REFUNDED.code());
         eventPublisher.publishEvent(new RefundedEvent(this, order.getOrderNo()));
     }
 
     /** 释放资产(6.4)：回滚库存 + 释放券 3→0 + order→targetStatus。 */
     private void releaseAssets(Order order, int targetStatus) {
-        List<OrderItem> items = orderItemMapper.selectList(Wrappers.<OrderItem>lambdaQuery()
-                .eq(OrderItem::getOrderNo, order.getOrderNo()));
-        for (OrderItem item : items) {
-            skuMapper.update(null, Wrappers.<ProductSku>lambdaUpdate()
-                    .setSql("stock = stock + " + item.getQuantity())
-                    .eq(ProductSku::getId, item.getSkuId()));
+        for (OrderItem item : orderItemRepository.findByOrderNo(order.getOrderNo())) {
+            skuRepository.addStock(item.getSkuId(), item.getQuantity());
         }
-        orderCouponMapper.selectList(Wrappers.<OrderCoupon>lambdaQuery()
-                        .eq(OrderCoupon::getOrderNo, order.getOrderNo()))
-                .forEach(oc -> userCouponMapper.update(null, Wrappers.<UserCoupon>lambdaUpdate()
-                        .set(UserCoupon::getStatus, 0)
-                        .set(UserCoupon::getLockOrderNo, null)
-                        .eq(UserCoupon::getId, oc.getUserCouponId())
-                        .eq(UserCoupon::getStatus, 3)));
-        orderMapper.update(null, Wrappers.<Order>lambdaUpdate()
-                .set(Order::getStatus, targetStatus)
-                .set(Order::getCanceledAt, LocalDateTime.now())
-                .eq(Order::getOrderNo, order.getOrderNo())
-                .eq(Order::getStatus, 0));
+        for (OrderCoupon oc : orderCouponRepository.findByOrderNo(order.getOrderNo())) {
+            userCouponRepository.releaseLock(oc.getUserCouponId());
+        }
+        orderRepository.cancelFromUnpaidCas(order.getOrderNo(), targetStatus, LocalDateTime.now());
     }
 
     // ---- helpers ----
@@ -647,7 +550,7 @@ public class OrderServiceImpl implements OrderService {
     private void checkPurchaseLimit(OrderSubmitRequest req, PricingContext ctx) {
         Set<Long> productIds = ctx.getSkus().stream().map(ProductSku::getProductId).collect(Collectors.toSet());
         Map<Long, Product> productMap = productIds.isEmpty() ? Collections.emptyMap()
-                : productMapper.selectBatchIds(productIds).stream()
+                : productRepository.findByIds(productIds).stream()
                         .collect(Collectors.toMap(Product::getId, p -> p));
         Map<Long, ProductSku> skuMap = ctx.getSkus().stream()
                 .collect(Collectors.toMap(ProductSku::getId, s -> s));
@@ -666,17 +569,16 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Order requireOwnedOrder(Long userId, String orderNo) {
-        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery().eq(Order::getOrderNo, orderNo));
+        Order order = orderRepository.findByNo(orderNo);
         if (order == null || !order.getUserId().equals(userId)
-                || (order.getUserDeleted() != null && order.getUserDeleted() == 1)) {
+                || ValidFlag.ENABLED.is(order.getUserDeleted())) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
         return order;
     }
 
     private Map<String, List<OrderItem>> itemsByOrderNo(List<String> orderNos) {
-        return orderItemMapper.selectList(Wrappers.<OrderItem>lambdaQuery()
-                        .in(OrderItem::getOrderNo, orderNos))
+        return orderItemRepository.findByOrderNos(orderNos)
                 .stream().collect(Collectors.groupingBy(OrderItem::getOrderNo));
     }
 

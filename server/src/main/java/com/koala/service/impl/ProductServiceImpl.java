@@ -2,10 +2,7 @@ package com.koala.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
@@ -19,10 +16,11 @@ import com.koala.entity.Product;
 import com.koala.entity.ProductCategory;
 import com.koala.entity.ProductSku;
 import com.koala.entity.ProductTag;
-import com.koala.mapper.ProductCategoryMapper;
-import com.koala.mapper.ProductMapper;
-import com.koala.mapper.ProductSkuMapper;
-import com.koala.mapper.ProductTagMapper;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.ProductCategoryRepository;
+import com.koala.repository.ProductRepository;
+import com.koala.repository.ProductSkuRepository;
+import com.koala.repository.ProductTagRepository;
 import com.koala.service.ProductService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,29 +39,22 @@ public class ProductServiceImpl implements ProductService {
 
     private static final int LOW_STOCK_THRESHOLD = 20;
 
-    private final ProductMapper productMapper;
-    private final ProductSkuMapper skuMapper;
-    private final ProductCategoryMapper categoryMapper;
-    private final ProductTagMapper tagMapper;
+    private final ProductRepository productRepository;
+    private final ProductSkuRepository skuRepository;
+    private final ProductCategoryRepository categoryRepository;
+    private final ProductTagRepository tagRepository;
 
-    public ProductServiceImpl(ProductMapper productMapper, ProductSkuMapper skuMapper,
-                              ProductCategoryMapper categoryMapper, ProductTagMapper tagMapper) {
-        this.productMapper = productMapper;
-        this.skuMapper = skuMapper;
-        this.categoryMapper = categoryMapper;
-        this.tagMapper = tagMapper;
+    public ProductServiceImpl(ProductRepository productRepository, ProductSkuRepository skuRepository,
+                              ProductCategoryRepository categoryRepository, ProductTagRepository tagRepository) {
+        this.productRepository = productRepository;
+        this.skuRepository = skuRepository;
+        this.categoryRepository = categoryRepository;
+        this.tagRepository = tagRepository;
     }
 
     @Override
     public PageResult<ProductCardView> listForUser(Long categoryId, String keyword, long page, long size) {
-        LambdaQueryWrapper<Product> q = Wrappers.<Product>lambdaQuery()
-                .eq(Product::getIsValid, 1)
-                .eq(categoryId != null, Product::getCategoryId, categoryId)
-                .like(StrUtil.isNotBlank(keyword), Product::getName, keyword)
-                .orderByDesc(Product::getIsRecommended)
-                .orderByDesc(Product::getSalesCount)
-                .orderByDesc(Product::getId);
-        IPage<Product> p = productMapper.selectPage(new Page<>(page, size), q);
+        IPage<Product> p = productRepository.pageOnSale(categoryId, keyword, page, size);
         if (p.getRecords().isEmpty()) {
             return PageResult.empty(page, size);
         }
@@ -72,23 +63,12 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductCardView> hotSelling(int limit) {
-        List<Product> products = productMapper.selectList(Wrappers.<Product>lambdaQuery()
-                .eq(Product::getIsValid, 1)
-                .orderByDesc(Product::getSalesCount)
-                .orderByDesc(Product::getId)
-                .last("LIMIT " + limit));
-        return toCards(products);
+        return toCards(productRepository.topOnSale(false, limit));
     }
 
     @Override
     public List<ProductCardView> recommended(int limit) {
-        List<Product> products = productMapper.selectList(Wrappers.<Product>lambdaQuery()
-                .eq(Product::getIsValid, 1)
-                .eq(Product::getIsRecommended, 1)
-                .orderByDesc(Product::getSalesCount)
-                .orderByDesc(Product::getId)
-                .last("LIMIT " + limit));
-        return toCards(products);
+        return toCards(productRepository.topOnSale(true, limit));
     }
 
     private List<ProductCardView> toCards(List<Product> products) {
@@ -104,7 +84,7 @@ public class ProductServiceImpl implements ProductService {
             v.setName(prod.getName());
             v.setMainImage(prod.getMainImage());
             v.setTagName(tagNames.get(prod.getTagId()));
-            v.setRecommended(prod.getIsRecommended() != null && prod.getIsRecommended() == 1);
+            v.setRecommended(ValidFlag.isEnabled(prod.getIsRecommended()));
             v.setHighlight(firstHighlight(prod.getHighlights()));
             v.setMinPrice(minPrice(skus));
             v.setSalesCount(prod.getSalesCount());
@@ -115,11 +95,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDetailView detailForUser(Long id) {
-        Product prod = productMapper.selectById(id);
-        if (prod == null || prod.getIsValid() == null || prod.getIsValid() != 1) {
+        Product prod = productRepository.findById(id);
+        if (prod == null || !ValidFlag.isEnabled(prod.getIsValid())) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        List<ProductSku> skus = orderedSkus(id);
+        List<ProductSku> skus = skuRepository.findByProduct(id);
 
         ProductDetailView v = new ProductDetailView();
         v.setId(prod.getId());
@@ -130,7 +110,7 @@ public class ProductServiceImpl implements ProductService {
         v.setCategoryName(categoryName(prod.getCategoryId()));
         v.setTagId(prod.getTagId());
         v.setTagName(tagName(prod.getTagId()));
-        v.setRecommended(prod.getIsRecommended() != null && prod.getIsRecommended() == 1);
+        v.setRecommended(ValidFlag.isEnabled(prod.getIsRecommended()));
         v.setHighlights(parseArray(prod.getHighlights()));
         v.setPerOrderLimit(prod.getPerOrderLimit());
         v.setSalesCount(prod.getSalesCount());
@@ -141,12 +121,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public PageResult<AdminProductView> listForAdmin(Long categoryId, String keyword, Integer status, long page, long size) {
-        LambdaQueryWrapper<Product> q = Wrappers.<Product>lambdaQuery()
-                .eq(categoryId != null, Product::getCategoryId, categoryId)
-                .eq(status != null, Product::getIsValid, status)
-                .like(StrUtil.isNotBlank(keyword), Product::getName, keyword)
-                .orderByDesc(Product::getId);
-        IPage<Product> p = productMapper.selectPage(new Page<>(page, size), q);
+        IPage<Product> p = productRepository.pageForAdmin(categoryId, keyword, status, page, size);
         if (p.getRecords().isEmpty()) {
             return PageResult.empty(page, size);
         }
@@ -164,22 +139,22 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public AdminProductView detailForAdmin(Long id) {
-        Product prod = productMapper.selectById(id);
+        Product prod = productRepository.findById(id);
         if (prod == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        List<ProductSku> skus = orderedSkus(id);
+        List<ProductSku> skus = skuRepository.findByProduct(id);
         return toAdminView(prod, skus, tagName(prod.getTagId()), categoryName(prod.getCategoryId()));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long save(ProductSaveRequest req, Long adminId) {
-        if (categoryMapper.selectById(req.getCategoryId()) == null) {
+        if (categoryRepository.findById(req.getCategoryId()) == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND.getCode(), "分类不存在");
         }
         long tagId = req.getTagId() != null ? req.getTagId() : 0L;
-        if (tagId != 0L && tagMapper.selectById(tagId) == null) {
+        if (tagId != 0L && tagRepository.findById(tagId) == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND.getCode(), "标签不存在");
         }
 
@@ -188,17 +163,17 @@ public class ProductServiceImpl implements ProductService {
         entity.setMainImage(req.getMainImage());
         entity.setDetailImages(toJson(req.getDetailImages()));
         entity.setTagId(tagId);
-        entity.setIsRecommended(Boolean.TRUE.equals(req.getRecommended()) ? 1 : 0);
+        entity.setIsRecommended(ValidFlag.of(Boolean.TRUE.equals(req.getRecommended())));
         entity.setHighlights(toJson(req.getHighlights()));
         entity.setCategoryId(req.getCategoryId());
         entity.setPerOrderLimit(req.getPerOrderLimit() != null ? req.getPerOrderLimit() : 0);
         entity.setUpdatedBy(adminId);
         if (entity.getId() == null) {
             entity.setCreatedBy(adminId);
-            entity.setIsValid(1);
-            productMapper.insert(entity);
+            entity.setIsValid(ValidFlag.ENABLED.code());
+            productRepository.insert(entity);
         } else {
-            productMapper.updateById(entity);
+            productRepository.updateById(entity);
         }
         replaceSkus(entity.getId(), req.getSkus());
         return entity.getId();
@@ -208,8 +183,8 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         requireProduct(id);
-        skuMapper.delete(Wrappers.<ProductSku>lambdaQuery().eq(ProductSku::getProductId, id));
-        productMapper.deleteById(id);
+        skuRepository.deleteByProduct(id);
+        productRepository.deleteById(id);
     }
 
     @Override
@@ -217,19 +192,18 @@ public class ProductServiceImpl implements ProductService {
         requireProduct(id);
         Product patch = new Product();
         patch.setId(id);
-        patch.setIsValid(valid ? 1 : 0);
-        productMapper.updateById(patch);
+        patch.setIsValid(ValidFlag.of(valid));
+        productRepository.updateById(patch);
     }
 
     // ---- SKU 整体替换：传入带 id 的更新、无 id 的新增、库中多余的删除 ----
     private void replaceSkus(Long productId, List<SkuSaveItem> items) {
-        List<ProductSku> existing = skuMapper.selectList(Wrappers.<ProductSku>lambdaQuery()
-                .eq(ProductSku::getProductId, productId));
+        List<ProductSku> existing = skuRepository.findByProduct(productId);
         Set<Long> keepIds = items.stream().map(SkuSaveItem::getId)
                 .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
         for (ProductSku old : existing) {
             if (!keepIds.contains(old.getId())) {
-                skuMapper.deleteById(old.getId());
+                skuRepository.deleteById(old.getId());
             }
         }
         int order = 0;
@@ -242,9 +216,9 @@ public class ProductServiceImpl implements ProductService {
             sku.setSortOrder(item.getSortOrder() != null ? item.getSortOrder() : order);
             if (item.getId() != null) {
                 sku.setId(item.getId());
-                skuMapper.updateById(sku);
+                skuRepository.updateById(sku);
             } else {
-                skuMapper.insert(sku);
+                skuRepository.insert(sku);
             }
             order++;
         }
@@ -260,7 +234,7 @@ public class ProductServiceImpl implements ProductService {
         v.setCategoryName(catName);
         v.setTagId(prod.getTagId());
         v.setTagName(tagName);
-        v.setRecommended(prod.getIsRecommended() != null && prod.getIsRecommended() == 1);
+        v.setRecommended(ValidFlag.isEnabled(prod.getIsRecommended()));
         v.setHighlights(parseArray(prod.getHighlights()));
         v.setPerOrderLimit(prod.getPerOrderLimit());
         v.setSalesCount(prod.getSalesCount());
@@ -277,18 +251,11 @@ public class ProductServiceImpl implements ProductService {
     // ---- helpers ----
 
     private Product requireProduct(Long id) {
-        Product p = productMapper.selectById(id);
+        Product p = productRepository.findById(id);
         if (p == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
         return p;
-    }
-
-    private List<ProductSku> orderedSkus(Long productId) {
-        return skuMapper.selectList(Wrappers.<ProductSku>lambdaQuery()
-                .eq(ProductSku::getProductId, productId)
-                .orderByAsc(ProductSku::getSortOrder)
-                .orderByAsc(ProductSku::getId));
     }
 
     private static List<Long> productIds(List<Product> products) {
@@ -296,10 +263,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private Map<Long, List<ProductSku>> skusByProduct(List<Long> productIds) {
-        return skuMapper.selectList(Wrappers.<ProductSku>lambdaQuery()
-                        .in(ProductSku::getProductId, productIds)
-                        .orderByAsc(ProductSku::getSortOrder)
-                        .orderByAsc(ProductSku::getId))
+        return skuRepository.findByProducts(productIds)
                 .stream().collect(Collectors.groupingBy(ProductSku::getProductId));
     }
 
@@ -309,7 +273,7 @@ public class ProductServiceImpl implements ProductService {
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
-        return tagMapper.selectBatchIds(ids).stream()
+        return tagRepository.findByIds(ids).stream()
                 .collect(Collectors.toMap(ProductTag::getId, ProductTag::getName));
     }
 
@@ -319,7 +283,8 @@ public class ProductServiceImpl implements ProductService {
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
-        return categoryMapper.selectBatchIds(ids).stream()
+        return ids.stream().map(categoryRepository::findById)
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toMap(ProductCategory::getId, ProductCategory::getName));
     }
 
@@ -327,7 +292,7 @@ public class ProductServiceImpl implements ProductService {
         if (tagId == null || tagId == 0L) {
             return null;
         }
-        ProductTag t = tagMapper.selectById(tagId);
+        ProductTag t = tagRepository.findById(tagId);
         return t != null ? t.getName() : null;
     }
 
@@ -335,7 +300,7 @@ public class ProductServiceImpl implements ProductService {
         if (categoryId == null) {
             return null;
         }
-        ProductCategory c = categoryMapper.selectById(categoryId);
+        ProductCategory c = categoryRepository.findById(categoryId);
         return c != null ? c.getName() : null;
     }
 

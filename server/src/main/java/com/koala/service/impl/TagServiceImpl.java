@@ -1,15 +1,14 @@
 package com.koala.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.dto.product.SortItem;
 import com.koala.dto.product.TagSaveRequest;
 import com.koala.dto.product.TagView;
-import com.koala.entity.Product;
 import com.koala.entity.ProductTag;
-import com.koala.mapper.ProductMapper;
-import com.koala.mapper.ProductTagMapper;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.ProductRepository;
+import com.koala.repository.ProductTagRepository;
 import com.koala.service.TagService;
 import org.springframework.stereotype.Service;
 
@@ -19,27 +18,23 @@ import java.util.stream.Collectors;
 @Service
 public class TagServiceImpl implements TagService {
 
-    private final ProductTagMapper tagMapper;
-    private final ProductMapper productMapper;
+    private final ProductTagRepository tagRepository;
+    private final ProductRepository productRepository;
 
-    public TagServiceImpl(ProductTagMapper tagMapper, ProductMapper productMapper) {
-        this.tagMapper = tagMapper;
-        this.productMapper = productMapper;
+    public TagServiceImpl(ProductTagRepository tagRepository, ProductRepository productRepository) {
+        this.tagRepository = tagRepository;
+        this.productRepository = productRepository;
     }
 
     @Override
     public List<TagView> listAll() {
-        return tagMapper.selectList(Wrappers.<ProductTag>lambdaQuery()
-                        .orderByAsc(ProductTag::getSortOrder)
-                        .orderByAsc(ProductTag::getId))
+        return tagRepository.findAll()
                 .stream().map(TagView::of).collect(Collectors.toList());
     }
 
     @Override
     public Long save(TagSaveRequest req) {
-        ProductTag dup = tagMapper.selectOne(Wrappers.<ProductTag>lambdaQuery()
-                .eq(ProductTag::getName, req.getName())
-                .last("LIMIT 1"));
+        ProductTag dup = tagRepository.findByName(req.getName());
         if (dup != null && !dup.getId().equals(req.getId())) {
             throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "标签名已存在");
         }
@@ -50,12 +45,12 @@ public class TagServiceImpl implements TagService {
             entity.setSortOrder(req.getSortOrder());
         }
         if (req.getValid() != null) {
-            entity.setIsValid(req.getValid() ? 1 : 0);
+            entity.setIsValid(ValidFlag.of(req.getValid()));
         }
         if (entity.getId() == null) {
-            tagMapper.insert(entity);
+            tagRepository.insert(entity);
         } else {
-            tagMapper.updateById(entity);
+            tagRepository.updateById(entity);
         }
         return entity.getId();
     }
@@ -63,12 +58,10 @@ public class TagServiceImpl implements TagService {
     @Override
     public void delete(Long id) {
         requireExists(id);
-        long count = productMapper.selectCount(Wrappers.<Product>lambdaQuery()
-                .eq(Product::getTagId, id));
-        if (count > 0) {
+        if (productRepository.countByTag(id) > 0) {
             throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "该标签仍被商品引用，不可删除");
         }
-        tagMapper.deleteById(id);
+        tagRepository.deleteById(id);
     }
 
     @Override
@@ -77,12 +70,12 @@ public class TagServiceImpl implements TagService {
             ProductTag patch = new ProductTag();
             patch.setId(item.getId());
             patch.setSortOrder(item.getSortOrder());
-            tagMapper.updateById(patch);
+            tagRepository.updateById(patch);
         }
     }
 
     private ProductTag requireExists(Long id) {
-        ProductTag t = tagMapper.selectById(id);
+        ProductTag t = tagRepository.findById(id);
         if (t == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }

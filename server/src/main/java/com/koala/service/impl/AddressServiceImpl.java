@@ -1,13 +1,13 @@
 package com.koala.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.dto.address.AddressSaveRequest;
 import com.koala.dto.address.AddressView;
 import com.koala.entity.Region;
 import com.koala.entity.UserAddress;
-import com.koala.mapper.UserAddressMapper;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.UserAddressRepository;
 import com.koala.service.AddressService;
 import com.koala.service.RegionService;
 import org.springframework.stereotype.Service;
@@ -19,21 +19,18 @@ import java.util.stream.Collectors;
 @Service
 public class AddressServiceImpl implements AddressService {
 
-    private final UserAddressMapper addressMapper;
+    private final UserAddressRepository addressRepository;
     private final RegionService regionService;
 
-    public AddressServiceImpl(UserAddressMapper addressMapper, RegionService regionService) {
-        this.addressMapper = addressMapper;
+    public AddressServiceImpl(UserAddressRepository addressRepository, RegionService regionService) {
+        this.addressRepository = addressRepository;
         this.regionService = regionService;
     }
 
     @Override
     public List<AddressView> list(Long userId) {
-        List<UserAddress> rows = addressMapper.selectList(Wrappers.<UserAddress>lambdaQuery()
-                .eq(UserAddress::getUserId, userId)
-                .orderByDesc(UserAddress::getIsDefault)
-                .orderByDesc(UserAddress::getId));
-        return rows.stream().map(AddressView::of).collect(Collectors.toList());
+        return addressRepository.findByUser(userId).stream()
+                .map(AddressView::of).collect(Collectors.toList());
     }
 
     @Override
@@ -49,13 +46,12 @@ public class AddressServiceImpl implements AddressService {
         fill(entity, req);
 
         boolean asDefault = Boolean.TRUE.equals(req.getIsDefault())
-                || addressMapper.selectCount(Wrappers.<UserAddress>lambdaQuery()
-                        .eq(UserAddress::getUserId, userId)) == 0;
+                || addressRepository.countByUser(userId) == 0;
         if (asDefault) {
-            clearDefault(userId);
+            addressRepository.clearDefault(userId);
         }
-        entity.setIsDefault(asDefault ? 1 : 0);
-        addressMapper.insert(entity);
+        entity.setIsDefault(ValidFlag.of(asDefault));
+        addressRepository.insert(entity);
         return entity.getId();
     }
 
@@ -68,20 +64,20 @@ public class AddressServiceImpl implements AddressService {
         UserAddress entity = requireOwned(userId, req.getId());
         fill(entity, req);
         if (Boolean.TRUE.equals(req.getIsDefault())) {
-            clearDefault(userId);
-            entity.setIsDefault(1);
+            addressRepository.clearDefault(userId);
+            entity.setIsDefault(ValidFlag.ENABLED.code());
         }
-        addressMapper.updateById(entity);
+        addressRepository.updateById(entity);
     }
 
     @Override
     public void delete(Long userId, Long id) {
         requireOwned(userId, id);
-        addressMapper.deleteById(id);
+        addressRepository.deleteById(id);
     }
 
     private UserAddress requireOwned(Long userId, Long id) {
-        UserAddress entity = addressMapper.selectById(id);
+        UserAddress entity = addressRepository.findById(id);
         if (entity == null || !entity.getUserId().equals(userId)) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
@@ -105,13 +101,5 @@ public class AddressServiceImpl implements AddressService {
         entity.setDistrict(district.getName());
         entity.setDetail(req.getDetail());
         entity.setFullAddress(province.getName() + city.getName() + district.getName() + req.getDetail());
-    }
-
-    private void clearDefault(Long userId) {
-        UserAddress patch = new UserAddress();
-        patch.setIsDefault(0);
-        addressMapper.update(patch, Wrappers.<UserAddress>lambdaUpdate()
-                .eq(UserAddress::getUserId, userId)
-                .eq(UserAddress::getIsDefault, 1));
     }
 }

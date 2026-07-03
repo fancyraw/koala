@@ -1,7 +1,6 @@
 package com.koala.service.impl;
 
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.config.WechatProperties;
@@ -9,8 +8,9 @@ import com.koala.dto.admin.AcceptInviteRequest;
 import com.koala.dto.admin.AdminView;
 import com.koala.dto.admin.InviteResponse;
 import com.koala.entity.Admin;
+import com.koala.enums.ValidFlag;
 import com.koala.infra.wechat.WechatAuthClient;
-import com.koala.mapper.AdminMapper;
+import com.koala.repository.AdminRepository;
 import com.koala.service.AdminManageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,14 +34,14 @@ public class AdminManageServiceImpl implements AdminManageService {
     private final StringRedisTemplate redis;
     private final WechatProperties wechatProps;
     private final WechatAuthClient wechatAuthClient;
-    private final AdminMapper adminMapper;
+    private final AdminRepository adminRepository;
 
     public AdminManageServiceImpl(StringRedisTemplate redis, WechatProperties wechatProps,
-                                  WechatAuthClient wechatAuthClient, AdminMapper adminMapper) {
+                                  WechatAuthClient wechatAuthClient, AdminRepository adminRepository) {
         this.redis = redis;
         this.wechatProps = wechatProps;
         this.wechatAuthClient = wechatAuthClient;
-        this.adminMapper = adminMapper;
+        this.adminRepository = adminRepository;
     }
 
     @Override
@@ -59,24 +59,21 @@ public class AdminManageServiceImpl implements AdminManageService {
             throw new BizException(ErrorCode.TOKEN_INVALID, "邀请链接已失效或已被使用");
         }
         String openid = wechatAuthClient.openCode2Openid(req.getCode());
-        Long exists = adminMapper.selectCount(Wrappers.<Admin>lambdaQuery()
-                .eq(Admin::getWxOpenid, openid));
-        if (exists != null && exists > 0) {
+        if (adminRepository.existsByOpenid(openid)) {
             throw new BizException(ErrorCode.DUPLICATE_SUBMIT, "该微信已是管理员");
         }
         Admin admin = new Admin();
         admin.setWxOpenid(openid);
         admin.setNickname("待审核管理员");
         admin.setAvatarUrl("");
-        admin.setIsSuper(0);
-        admin.setIsValid(0);
-        adminMapper.insert(admin);
+        admin.setIsSuper(ValidFlag.DISABLED.code());
+        admin.setIsValid(ValidFlag.DISABLED.code());
+        adminRepository.insert(admin);
     }
 
     @Override
     public List<AdminView> list() {
-        return adminMapper.selectList(Wrappers.<Admin>lambdaQuery()
-                        .orderByDesc(Admin::getId))
+        return adminRepository.findAll()
                 .stream().map(AdminView::of).collect(Collectors.toList());
     }
 
@@ -85,17 +82,17 @@ public class AdminManageServiceImpl implements AdminManageService {
         if (id.equals(operatorId)) {
             throw new BizException(ErrorCode.BIZ_ERROR, "不能修改自身状态");
         }
-        Admin admin = adminMapper.selectById(id);
+        Admin admin = adminRepository.findById(id);
         if (admin == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
-        if (admin.getIsSuper() != null && admin.getIsSuper() == 1) {
+        if (ValidFlag.ENABLED.is(admin.getIsSuper())) {
             throw new BizException(ErrorCode.BIZ_ERROR, "不能禁用/修改超级管理员");
         }
         Admin patch = new Admin();
         patch.setId(id);
-        patch.setIsValid(valid ? 1 : 0);
-        adminMapper.updateById(patch);
+        patch.setIsValid(ValidFlag.of(valid));
+        adminRepository.updateById(patch);
     }
 
     private String buildInviteUrl(String token) {

@@ -1,7 +1,6 @@
 package com.koala.service.impl;
 
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.dto.dashboard.DashboardView;
 import com.koala.dto.dashboard.HotProduct;
 import com.koala.dto.dashboard.Pending;
@@ -9,11 +8,12 @@ import com.koala.dto.dashboard.TodayOverview;
 import com.koala.dto.dashboard.TrendPoint;
 import com.koala.entity.Order;
 import com.koala.entity.OrderItem;
-import com.koala.entity.User;
-import com.koala.mapper.AfterSaleMapper;
-import com.koala.mapper.OrderItemMapper;
-import com.koala.mapper.OrderMapper;
-import com.koala.mapper.UserMapper;
+import com.koala.enums.AfterSaleStatus;
+import com.koala.enums.OrderStatus;
+import com.koala.repository.AfterSaleRepository;
+import com.koala.repository.OrderItemRepository;
+import com.koala.repository.OrderRepository;
+import com.koala.repository.UserRepository;
 import com.koala.service.DashboardService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -43,19 +44,19 @@ public class DashboardServiceImpl implements DashboardService {
     private static final int HOT_LIMIT = 5;
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private final OrderMapper orderMapper;
-    private final OrderItemMapper orderItemMapper;
-    private final UserMapper userMapper;
-    private final AfterSaleMapper afterSaleMapper;
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final UserRepository userRepository;
+    private final AfterSaleRepository afterSaleRepository;
     private final StringRedisTemplate redis;
 
-    public DashboardServiceImpl(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
-                                UserMapper userMapper, AfterSaleMapper afterSaleMapper,
+    public DashboardServiceImpl(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
+                                UserRepository userRepository, AfterSaleRepository afterSaleRepository,
                                 StringRedisTemplate redis) {
-        this.orderMapper = orderMapper;
-        this.orderItemMapper = orderItemMapper;
-        this.userMapper = userMapper;
-        this.afterSaleMapper = afterSaleMapper;
+        this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.userRepository = userRepository;
+        this.afterSaleRepository = afterSaleRepository;
         this.redis = redis;
     }
 
@@ -76,9 +77,7 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime windowStart = today.minusDays(rangeDays - 1L).atStartOfDay();
 
         // 窗口内已支付订单(以 paid_at 计),覆盖今日概览/趋势/热销
-        List<Order> paidOrders = orderMapper.selectList(Wrappers.<Order>lambdaQuery()
-                .isNotNull(Order::getPaidAt)
-                .ge(Order::getPaidAt, windowStart));
+        List<Order> paidOrders = orderRepository.findPaidSince(windowStart);
 
         DashboardView view = new DashboardView();
         view.setToday(buildToday(today, paidOrders));
@@ -118,11 +117,10 @@ public class DashboardServiceImpl implements DashboardService {
 
     private Pending buildPending() {
         Pending p = new Pending();
-        p.setToShip(orderMapper.selectCount(Wrappers.<Order>lambdaQuery()
-                .eq(Order::getStatus, 1)));
-        // 需店主动手的售后:0待审核 / 2买家已寄回待确认收货
-        p.setAfterSale(afterSaleMapper.selectCount(Wrappers.<com.koala.entity.AfterSale>lambdaQuery()
-                .in(com.koala.entity.AfterSale::getStatus, 0, 2)));
+        p.setToShip(orderRepository.countByStatus(OrderStatus.WAIT_SHIP.code()));
+        // 需店主动手的售后:待审核 / 买家已寄回待确认收货
+        p.setAfterSale(afterSaleRepository.countByStatuses(Arrays.asList(
+                AfterSaleStatus.PENDING_AUDIT.code(), AfterSaleStatus.BUYER_RETURNED.code())));
         return p;
     }
 
@@ -153,8 +151,7 @@ public class DashboardServiceImpl implements DashboardService {
             return Collections.emptyList();
         }
         List<String> orderNos = paidOrders.stream().map(Order::getOrderNo).collect(Collectors.toList());
-        List<OrderItem> items = orderItemMapper.selectList(Wrappers.<OrderItem>lambdaQuery()
-                .in(OrderItem::getOrderNo, orderNos));
+        List<OrderItem> items = orderItemRepository.findByOrderNos(orderNos);
 
         Map<Long, HotProduct> agg = new LinkedHashMap<>();
         for (OrderItem it : items) {
@@ -177,9 +174,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private long countNewUsers(LocalDateTime start, LocalDateTime end) {
-        return userMapper.selectCount(Wrappers.<User>lambdaQuery()
-                .ge(User::getCreatedAt, start)
-                .lt(User::getCreatedAt, end));
+        return userRepository.countNewUsers(start, end);
     }
 
     private static BigDecimal sumPay(List<Order> orders) {

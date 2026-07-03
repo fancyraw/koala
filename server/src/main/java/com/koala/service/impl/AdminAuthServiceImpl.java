@@ -3,7 +3,6 @@ package com.koala.service.impl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.auth.JwtUtil;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
@@ -12,8 +11,9 @@ import com.koala.dto.auth.LoginResponse;
 import com.koala.dto.auth.QrcodeCheckResponse;
 import com.koala.dto.auth.QrcodeResponse;
 import com.koala.entity.Admin;
+import com.koala.enums.ValidFlag;
 import com.koala.infra.wechat.WechatAuthClient;
-import com.koala.mapper.AdminMapper;
+import com.koala.repository.AdminRepository;
 import com.koala.service.AdminAuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,15 +38,15 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     private final StringRedisTemplate redis;
     private final WechatAuthClient wechatAuthClient;
     private final WechatProperties wechatProps;
-    private final AdminMapper adminMapper;
+    private final AdminRepository adminRepository;
     private final JwtUtil jwtUtil;
 
     public AdminAuthServiceImpl(StringRedisTemplate redis, WechatAuthClient wechatAuthClient,
-                                WechatProperties wechatProps, AdminMapper adminMapper, JwtUtil jwtUtil) {
+                                WechatProperties wechatProps, AdminRepository adminRepository, JwtUtil jwtUtil) {
         this.redis = redis;
         this.wechatAuthClient = wechatAuthClient;
         this.wechatProps = wechatProps;
-        this.adminMapper = adminMapper;
+        this.adminRepository = adminRepository;
         this.jwtUtil = jwtUtil;
     }
 
@@ -79,18 +79,17 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         }
         String openid = wechatAuthClient.openCode2Openid(code);
 
-        Admin admin = adminMapper.selectOne(Wrappers.<Admin>lambdaQuery()
-                .eq(Admin::getWxOpenid, openid));
-        if (admin == null || admin.getIsValid() == null || admin.getIsValid() != 1) {
+        Admin admin = adminRepository.findByOpenid(openid);
+        if (admin == null || !ValidFlag.ENABLED.is(admin.getIsValid())) {
             // openid 无匹配 / 未启用：后台无注册口，拒绝登录
             writeSession(state, QrcodeCheckResponse.REJECTED, null);
             return;
         }
 
         admin.setLastLoginAt(LocalDateTime.now());
-        adminMapper.updateById(admin);
+        adminRepository.updateById(admin);
 
-        String token = jwtUtil.issueAdminToken(admin.getId(), admin.getIsSuper() != null && admin.getIsSuper() == 1);
+        String token = jwtUtil.issueAdminToken(admin.getId(), ValidFlag.ENABLED.is(admin.getIsSuper()));
         LoginResponse login = new LoginResponse(token, admin.getId(), admin.getNickname(), admin.getAvatarUrl());
         writeSession(state, QrcodeCheckResponse.CONFIRMED, login);
     }

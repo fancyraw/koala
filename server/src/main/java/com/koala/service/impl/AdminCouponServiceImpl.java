@@ -1,7 +1,6 @@
 package com.koala.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
@@ -11,9 +10,12 @@ import com.koala.dto.coupon.GrantDetailView;
 import com.koala.entity.Coupon;
 import com.koala.entity.User;
 import com.koala.entity.UserCoupon;
-import com.koala.mapper.CouponMapper;
-import com.koala.mapper.UserCouponMapper;
-import com.koala.mapper.UserMapper;
+import com.koala.enums.CouponValidityType;
+import com.koala.enums.UserCouponStatus;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.CouponRepository;
+import com.koala.repository.UserCouponRepository;
+import com.koala.repository.UserRepository;
 import com.koala.service.AdminCouponService;
 import org.springframework.stereotype.Service;
 
@@ -29,21 +31,21 @@ import java.util.stream.Collectors;
 @Service
 public class AdminCouponServiceImpl implements AdminCouponService {
 
-    private final CouponMapper couponMapper;
-    private final UserCouponMapper userCouponMapper;
-    private final UserMapper userMapper;
+    private final CouponRepository couponRepository;
+    private final UserCouponRepository userCouponRepository;
+    private final UserRepository userRepository;
 
-    public AdminCouponServiceImpl(CouponMapper couponMapper, UserCouponMapper userCouponMapper, UserMapper userMapper) {
-        this.couponMapper = couponMapper;
-        this.userCouponMapper = userCouponMapper;
-        this.userMapper = userMapper;
+    public AdminCouponServiceImpl(CouponRepository couponRepository, UserCouponRepository userCouponRepository,
+                                  UserRepository userRepository) {
+        this.couponRepository = couponRepository;
+        this.userCouponRepository = userCouponRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
     public PageResult<AdminCouponView> list(String state, long page, long size) {
         LocalDateTime now = LocalDateTime.now();
-        List<AdminCouponView> all = couponMapper.selectList(Wrappers.<Coupon>lambdaQuery()
-                        .orderByDesc(Coupon::getId))
+        List<AdminCouponView> all = couponRepository.findAll()
                 .stream().map(c -> toView(c, now)).collect(Collectors.toList());
         if (StrUtil.isNotBlank(state)) {
             all = all.stream().filter(v -> state.equals(v.getState())).collect(Collectors.toList());
@@ -78,17 +80,17 @@ public class AdminCouponServiceImpl implements AdminCouponService {
         if (entity.getId() == null) {
             entity.setIssuedCount(0);
             entity.setUsedCount(0);
-            entity.setIsValid(1);
+            entity.setIsValid(ValidFlag.ENABLED.code());
             entity.setVersion(0);
-            couponMapper.insert(entity);
+            couponRepository.insert(entity);
         } else {
-            if (entity.getIsValid() == null || entity.getIsValid() != 1) {
+            if (!ValidFlag.isEnabled(entity.getIsValid())) {
                 throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "已停发的券不可编辑");
             }
             if (entity.getTotalCount() != null && req.getTotalCount() < entity.getIssuedCount()) {
                 throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "发行总量不能小于已发行量");
             }
-            couponMapper.updateById(entity);
+            couponRepository.updateById(entity);
         }
         return entity.getId();
     }
@@ -96,13 +98,13 @@ public class AdminCouponServiceImpl implements AdminCouponService {
     @Override
     public void stop(Long id) {
         Coupon c = requireCoupon(id);
-        if (c.getIsValid() != null && c.getIsValid() == 0) {
+        if (ValidFlag.DISABLED.is(c.getIsValid())) {
             return;
         }
         Coupon patch = new Coupon();
         patch.setId(id);
-        patch.setIsValid(0);
-        couponMapper.updateById(patch);
+        patch.setIsValid(ValidFlag.DISABLED.code());
+        couponRepository.updateById(patch);
     }
 
     @Override
@@ -111,21 +113,19 @@ public class AdminCouponServiceImpl implements AdminCouponService {
         if (c.getIssuedCount() != null && c.getIssuedCount() > 0) {
             throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "已有下发记录，只能停发不能删除");
         }
-        couponMapper.deleteById(id);
+        couponRepository.deleteById(id);
     }
 
     @Override
     public List<GrantDetailView> grants(Long couponId) {
         requireCoupon(couponId);
         LocalDateTime now = LocalDateTime.now();
-        List<UserCoupon> rows = userCouponMapper.selectList(Wrappers.<UserCoupon>lambdaQuery()
-                .eq(UserCoupon::getCouponId, couponId)
-                .orderByDesc(UserCoupon::getGrantedAt));
+        List<UserCoupon> rows = userCouponRepository.findByCoupon(couponId);
         if (rows.isEmpty()) {
             return new ArrayList<>();
         }
         Set<Long> userIds = rows.stream().map(UserCoupon::getUserId).collect(Collectors.toSet());
-        Map<Long, String> nickMap = userMapper.selectBatchIds(userIds).stream()
+        Map<Long, String> nickMap = userRepository.findByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getNickname));
 
         return rows.stream().map(uc -> {
@@ -137,8 +137,8 @@ public class AdminCouponServiceImpl implements AdminCouponService {
             v.setUsedAt(uc.getUsedAt());
             v.setExpireAt(uc.getExpireAt());
             int status = uc.getStatus();
-            if (status == 0 && uc.getExpireAt() != null && uc.getExpireAt().isBefore(now)) {
-                status = 2;
+            if (UserCouponStatus.UNUSED.is(status) && uc.getExpireAt() != null && uc.getExpireAt().isBefore(now)) {
+                status = UserCouponStatus.EXPIRED.code();
             }
             v.setStatus(status);
             return v;
@@ -146,14 +146,14 @@ public class AdminCouponServiceImpl implements AdminCouponService {
     }
 
     private void validate(CouponSaveRequest req) {
-        if (req.getValidityType() != null && req.getValidityType() == 1) {
+        if (CouponValidityType.FIXED_RANGE.is(req.getValidityType())) {
             if (req.getValidStartAt() == null || req.getValidEndAt() == null) {
                 throw new BizException(ErrorCode.PARAM_MISSING.getCode(), "固定区间需填写起止时间");
             }
             if (!req.getValidEndAt().isAfter(req.getValidStartAt())) {
                 throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "结束时间须晚于开始时间");
             }
-        } else if (req.getValidityType() != null && req.getValidityType() == 2) {
+        } else if (CouponValidityType.DAYS_AFTER_GRANT.is(req.getValidityType())) {
             if (req.getValidDays() == null || req.getValidDays() <= 0) {
                 throw new BizException(ErrorCode.PARAM_MISSING.getCode(), "领取后N天需填写有效天数");
             }
@@ -163,7 +163,7 @@ public class AdminCouponServiceImpl implements AdminCouponService {
     }
 
     private Coupon requireCoupon(Long id) {
-        Coupon c = couponMapper.selectById(id);
+        Coupon c = couponRepository.findById(id);
         if (c == null) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
@@ -191,12 +191,12 @@ public class AdminCouponServiceImpl implements AdminCouponService {
 
     /** 派生态：停发优先级最高；固定区间叠加未开始/已结束。 */
     private String deriveState(Coupon c, LocalDateTime now) {
-        if (c.getIsValid() == null || c.getIsValid() == 0) {
+        if (!ValidFlag.isEnabled(c.getIsValid())) {
             return "STOPPED";
         }
         boolean soldOut = c.getIssuedCount() != null && c.getTotalCount() != null
                 && c.getIssuedCount() >= c.getTotalCount();
-        if (c.getValidityType() != null && c.getValidityType() == 1) {
+        if (CouponValidityType.FIXED_RANGE.is(c.getValidityType())) {
             if (c.getValidStartAt() != null && now.isBefore(c.getValidStartAt())) {
                 return "NOT_STARTED";
             }

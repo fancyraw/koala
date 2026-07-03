@@ -1,6 +1,5 @@
 package com.koala.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.dto.order.OrderItemRequest;
@@ -12,10 +11,12 @@ import com.koala.entity.Coupon;
 import com.koala.entity.Product;
 import com.koala.entity.ProductSku;
 import com.koala.entity.UserCoupon;
-import com.koala.mapper.CouponMapper;
-import com.koala.mapper.ProductMapper;
-import com.koala.mapper.ProductSkuMapper;
-import com.koala.mapper.UserCouponMapper;
+import com.koala.enums.CouponType;
+import com.koala.enums.ValidFlag;
+import com.koala.repository.CouponRepository;
+import com.koala.repository.ProductRepository;
+import com.koala.repository.ProductSkuRepository;
+import com.koala.repository.UserCouponRepository;
 import com.koala.service.ConfigService;
 import com.koala.service.PriceService;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,19 +34,19 @@ public class PriceServiceImpl implements PriceService {
 
     private static final BigDecimal MIN_PAY = new BigDecimal("0.01");
 
-    private final ProductSkuMapper skuMapper;
-    private final ProductMapper productMapper;
-    private final CouponMapper couponMapper;
-    private final UserCouponMapper userCouponMapper;
+    private final ProductSkuRepository skuRepository;
+    private final ProductRepository productRepository;
+    private final CouponRepository couponRepository;
+    private final UserCouponRepository userCouponRepository;
     private final ConfigService configService;
 
-    public PriceServiceImpl(ProductSkuMapper skuMapper, ProductMapper productMapper,
-                            CouponMapper couponMapper, UserCouponMapper userCouponMapper,
+    public PriceServiceImpl(ProductSkuRepository skuRepository, ProductRepository productRepository,
+                            CouponRepository couponRepository, UserCouponRepository userCouponRepository,
                             ConfigService configService) {
-        this.skuMapper = skuMapper;
-        this.productMapper = productMapper;
-        this.couponMapper = couponMapper;
-        this.userCouponMapper = userCouponMapper;
+        this.skuRepository = skuRepository;
+        this.productRepository = productRepository;
+        this.couponRepository = couponRepository;
+        this.userCouponRepository = userCouponRepository;
         this.configService = configService;
     }
 
@@ -56,11 +56,11 @@ public class PriceServiceImpl implements PriceService {
 
         // 1. 解析商品项 + 商品合计
         Set<Long> skuIds = items.stream().map(OrderItemRequest::getSkuId).collect(Collectors.toSet());
-        Map<Long, ProductSku> skuMap = skuMapper.selectBatchIds(skuIds).stream()
+        Map<Long, ProductSku> skuMap = skuRepository.findByIds(skuIds).stream()
                 .collect(Collectors.toMap(ProductSku::getId, s -> s));
         Set<Long> productIds = skuMap.values().stream().map(ProductSku::getProductId).collect(Collectors.toSet());
         Map<Long, Product> productMap = productIds.isEmpty() ? java.util.Collections.emptyMap()
-                : productMapper.selectBatchIds(productIds).stream()
+                : productRepository.findByIds(productIds).stream()
                         .collect(Collectors.toMap(Product::getId, p -> p));
 
         List<OrderItemView> itemViews = new ArrayList<>();
@@ -72,7 +72,7 @@ public class PriceServiceImpl implements PriceService {
                 throw new BizException(ErrorCode.DATA_NOT_FOUND.getCode(), "商品规格不存在");
             }
             Product product = productMap.get(sku.getProductId());
-            if (product == null || product.getIsValid() == null || product.getIsValid() != 1) {
+            if (product == null || !ValidFlag.isEnabled(product.getIsValid())) {
                 throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "商品已下架");
             }
             BigDecimal subtotal = sku.getPrice().multiply(BigDecimal.valueOf(req.getQuantity()));
@@ -92,9 +92,9 @@ public class PriceServiceImpl implements PriceService {
         }
 
         // 2. 券组合最优：无门槛(面额最大) + 满减(门槛≤合计中面额最大)
-        List<UserCoupon> usable = usableCoupons(userId, now);
+        List<UserCoupon> usable = userCouponRepository.findUsableByUser(userId, now);
         Map<Long, Coupon> couponMap = usable.isEmpty() ? java.util.Collections.emptyMap()
-                : couponMapper.selectBatchIds(usable.stream().map(UserCoupon::getCouponId).collect(Collectors.toSet()))
+                : couponRepository.findByIds(usable.stream().map(UserCoupon::getCouponId).collect(Collectors.toSet()))
                         .stream().collect(Collectors.toMap(Coupon::getId, c -> c));
 
         UserCoupon bestNoThreshold = null;
@@ -106,12 +106,12 @@ public class PriceServiceImpl implements PriceService {
             if (c == null) {
                 continue;
             }
-            if (c.getType() != null && c.getType() == 2) {
+            if (CouponType.NO_THRESHOLD.is(c.getType())) {
                 if (c.getDiscountAmount().compareTo(bestNoThresholdVal) > 0) {
                     bestNoThresholdVal = c.getDiscountAmount();
                     bestNoThreshold = uc;
                 }
-            } else if (c.getType() != null && c.getType() == 1) {
+            } else if (CouponType.FULL_REDUCE.is(c.getType())) {
                 BigDecimal threshold = c.getMinSpend() != null ? c.getMinSpend() : BigDecimal.ZERO;
                 if (productAmount.compareTo(threshold) >= 0
                         && c.getDiscountAmount().compareTo(bestFullReduceVal) > 0) {
@@ -174,7 +174,7 @@ public class PriceServiceImpl implements PriceService {
         BigDecimal bestExtra = BigDecimal.ZERO;
         for (UserCoupon uc : usable) {
             Coupon c = couponMap.get(uc.getCouponId());
-            if (c == null || c.getType() == null || c.getType() != 1) {
+            if (c == null || !CouponType.FULL_REDUCE.is(c.getType())) {
                 continue;
             }
             BigDecimal threshold = c.getMinSpend() != null ? c.getMinSpend() : BigDecimal.ZERO;
@@ -193,16 +193,6 @@ public class PriceServiceImpl implements PriceService {
             }
         }
         return best;
-    }
-
-    private List<UserCoupon> usableCoupons(Long userId, LocalDateTime now) {
-        return userCouponMapper.selectList(Wrappers.<UserCoupon>lambdaQuery()
-                        .eq(UserCoupon::getUserId, userId)
-                        .eq(UserCoupon::getStatus, 0)
-                        .gt(UserCoupon::getExpireAt, now))
-                .stream()
-                .sorted(Comparator.comparing(UserCoupon::getExpireAt))
-                .collect(Collectors.toList());
     }
 
     private PriceResult.AppliedCoupon appliedView(UserCoupon uc, Coupon c) {

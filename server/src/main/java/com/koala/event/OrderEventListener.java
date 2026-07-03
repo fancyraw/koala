@@ -1,10 +1,8 @@
 package com.koala.event;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.koala.entity.OrderItem;
-import com.koala.entity.Product;
-import com.koala.mapper.OrderItemMapper;
-import com.koala.mapper.ProductMapper;
+import com.koala.repository.OrderItemRepository;
+import com.koala.repository.ProductRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -16,12 +14,12 @@ import java.util.List;
 @Component
 public class OrderEventListener {
 
-    private final OrderItemMapper orderItemMapper;
-    private final ProductMapper productMapper;
+    private final OrderItemRepository orderItemRepository;
+    private final ProductRepository productRepository;
 
-    public OrderEventListener(OrderItemMapper orderItemMapper, ProductMapper productMapper) {
-        this.orderItemMapper = orderItemMapper;
-        this.productMapper = productMapper;
+    public OrderEventListener(OrderItemRepository orderItemRepository, ProductRepository productRepository) {
+        this.orderItemRepository = orderItemRepository;
+        this.productRepository = productRepository;
     }
 
     @EventListener
@@ -37,13 +35,9 @@ public class OrderEventListener {
     }
 
     private void adjustSales(String orderNo, int sign) {
-        List<OrderItem> items = orderItemMapper.selectList(Wrappers.<OrderItem>lambdaQuery()
-                .eq(OrderItem::getOrderNo, orderNo));
+        List<OrderItem> items = orderItemRepository.findByOrderNo(orderNo);
         for (OrderItem item : items) {
-            int delta = sign * item.getQuantity();
-            productMapper.update(null, Wrappers.<Product>lambdaUpdate()
-                    .setSql("sales_count = GREATEST(0, sales_count + (" + delta + "))")
-                    .eq(Product::getId, item.getProductId()));
+            productRepository.addSalesCount(item.getProductId(), sign * item.getQuantity());
         }
     }
 }
