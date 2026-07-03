@@ -1,0 +1,17 @@
+# secrets / env
+.env
+deploy/.env
+*.env.local
+
+# build output
+server/target/
+target/
+
+# logs
+logs/
+*.log
+
+# os / editor
+.DS_Store
+.idea/
+*.iml
