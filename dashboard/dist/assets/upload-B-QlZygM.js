@@ -1,0 +1,1 @@
+import{f as t,ay as i}from"./index-UrGUOtwH.js";async function s(p){const a=await t.uploadCredential(),e=new FormData;return Object.entries(a.params||{}).forEach(([o,r])=>e.append(o,r)),a.key&&e.append("key",a.key),e.append("file",p),await i.post(a.uploadUrl,e),a.publicUrl}export{s as u};
