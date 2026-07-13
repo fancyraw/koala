@@ -1,0 +1,41 @@
+/**
+ * 设计 token（源自 docs/C端UI设计.md，小红书风格：轻盈通透、极致留白、图片即主角）
+ * 说明：uni-app 中 750rpx = 屏宽；设计以 375pt 为基准，故 1px ≈ 2rpx。
+ */
+
+/* ---- 颜色 ---- */
+$brand: #ff2442; // 品牌红（主按钮/价格/角标/强调）
+$brand-light: #ffecec; // 品牌红浅底
+$text-title: #1a1a1a; // 主标题
+$text-body: #333333; // 正文
+$text-weak: #999999; // 次要文字
+$text-placeholder: #c8c8c8; // 占位/弱
+$page-bg: #f8f8f8; // 页面背景
+$card-bg: #ffffff; // 卡片底
+$divider: #f0f0f0; // 分隔线
+$fill-secondary: #f5f5f5; // 次按钮底
+
+/* ---- 圆角 ---- */
+$radius-card: 32rpx; // 卡片 16px
+$radius-img: 24rpx; // 图片 12px
+$radius-sm: 16rpx; // 小元素 8px
+$radius-pill: 999rpx; // 胶囊
+$radius-tag: 12rpx; // 标签 pill 6px
+
+/* ---- 阴影（几乎不用，必要时极淡）---- */
+$shadow-card: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+
+/* ---- 间距（基础 8px = 16rpx）---- */
+$gap-xs: 8rpx;
+$gap-sm: 16rpx;
+$gap: 24rpx;
+$gap-lg: 32rpx;
+$safe-x: 24rpx; // 左右安全边距 12px
+
+/* ---- 字号 ---- */
+$fs-display: 36rpx; // 大标题 18px/600
+$fs-title: 32rpx; // 标题 16px/600
+$fs-body: 28rpx; // 正文 14px
+$fs-sub: 26rpx; // 13px
+$fs-aux: 24rpx; // 辅助 12px
+$fs-tiny: 22rpx; // 11px
