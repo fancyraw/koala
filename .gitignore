@@ -3,9 +3,17 @@
 deploy/.env
 *.env.local
 
+# dependencies
+node_modules/
+dashboard/node_modules/
+web/node_modules/
+
 # build output
 server/target/
 target/
+dashboard/dist/
+web/dist/
+web/unpackage/
 
 # logs
 logs/

@@ -15,7 +15,11 @@
 | `deploy/` | 部署编排（本地开发用的 docker-compose） |
 | `scripts/` | 本地开发脚本 |
 
-## 技术栈（后端）
+文档入口（`docs/`）：整体技术设计、C 端产品/UI 设计、后台管理产品/UI 设计，以及可直接打开的 UI 原型 HTML。
+
+## 技术栈
+
+### 后端（`server/`）
 
 - Spring Boot 2.7.18 / JDK 8
 - MyBatis-Plus 3.5.5，数据访问统一走 `repository` 层
@@ -24,6 +28,21 @@
 - JWT（jjwt）鉴权，Hutool 工具库
 - Knife4j (OpenAPI3) 接口文档
 - 微信登录 / 支付为 mock 实现，未配置 appid 时可全链路本地跑通
+
+### C 端小程序（`web/`）
+
+- uni-app + Vue3（`@dcloudio/uni-app` 3.0）+ Pinia + Vite 5
+- 编译目标：微信小程序（`mp-weixin`），开发期也可跑 H5
+- 视觉走小红书风格，主色 `#ff2442`
+
+### 后台管理（`dashboard/`）
+
+- Vue3 + Element Plus 2.7 + Vite 5 单页应用（SPA）
+- Pinia 状态管理、vue-router、axios、ECharts 5
+- 部署基路径 `/koala/`，API 走 `/api/v1/admin/*`
+- 中后台风格，主色 `#1677FF`，深色顶栏
+- 管理员登录为微信扫码（mock），`isSuper` 能力位从 JWT claim 解析，「管理员管理」仅超管可见
+- 覆盖模块：数据看板 / 商品 / 订单 / 用户 / 优惠券 / 内容(Banner) / 系统设置 / 管理员管理
 
 ## 本地启动
 
@@ -50,6 +69,27 @@ mvn -f server/pom.xml spring-boot:run
 
 - API 前缀：`http://localhost:8080/api/v1`
 - 接口文档（Knife4j）：`http://localhost:8080/api/v1/doc.html`
+
+### 后台管理（`dashboard/`）
+
+```bash
+cd dashboard
+npm install
+npm run dev      # 开发服务器 http://localhost:5174/koala/
+npm run build    # 产物输出到 dashboard/dist（base 路径 /koala/）
+```
+
+开发期 `/api/v1` 请求由 Vite 代理转发到 `http://localhost:8080`，需先起后端。
+
+### C 端小程序（`web/`）
+
+```bash
+cd web
+npm install
+npm run dev:mp-weixin    # 编译到 dist/dev/mp-weixin，用微信开发者工具打开该目录
+npm run dev:h5           # 或在浏览器里以 H5 调试
+npm run build:mp-weixin  # 生产构建
+```
 
 ## 配置
 
@@ -81,10 +121,3 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --
 - 数据持久化在命名卷 `koala-mysql` / `koala-redis`，请对宿主机磁盘做好备份（预算充足时建议数据库改用阿里云 RDS + 云 Redis，容器只跑 app）。
 - 生产走 `prod` profile，需要的环境变量见 [deploy/.env.example](deploy/.env.example)。
 
-## 测试
-
-```bash
-mvn -f server/pom.xml test
-```
-
-当前覆盖 Service 层 Mockito 单元测试（地址、购物车、优惠券、价格计算、售后等）。
