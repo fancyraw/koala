@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
+import com.koala.converter.CouponConverter;
 import com.koala.dto.coupon.AdminCouponView;
 import com.koala.dto.coupon.CouponSaveRequest;
 import com.koala.dto.coupon.GrantDetailView;
@@ -53,7 +54,7 @@ public class AdminCouponServiceImpl implements AdminCouponService {
             throw new BizException(ErrorCode.SYSTEM_ERROR.getCode(),
                     "券模板数量已超上限 " + LIST_HARD_LIMIT + "，请清理历史模板后重试");
         }
-        List<AdminCouponView> all = raw.stream().map(c -> toView(c, now)).collect(Collectors.toList());
+        List<AdminCouponView> all = raw.stream().map(c -> CouponConverter.toAdminView(c, now)).collect(Collectors.toList());
         if (StrUtil.isNotBlank(state)) {
             all = all.stream().filter(v -> state.equals(v.getState())).collect(Collectors.toList());
         }
@@ -68,7 +69,7 @@ public class AdminCouponServiceImpl implements AdminCouponService {
 
     @Override
     public AdminCouponView detail(Long id) {
-        return toView(requireCoupon(id), LocalDateTime.now());
+        return CouponConverter.toAdminView(requireCoupon(id), LocalDateTime.now());
     }
 
     @Override
@@ -180,40 +181,4 @@ public class AdminCouponServiceImpl implements AdminCouponService {
         return c;
     }
 
-    private AdminCouponView toView(Coupon c, LocalDateTime now) {
-        AdminCouponView v = new AdminCouponView();
-        v.setId(c.getId());
-        v.setName(c.getName());
-        v.setType(c.getType());
-        v.setDiscountAmount(c.getDiscountAmount());
-        v.setMinSpend(c.getMinSpend());
-        v.setTotalCount(c.getTotalCount());
-        v.setIssuedCount(c.getIssuedCount());
-        v.setUsedCount(c.getUsedCount());
-        v.setValidityType(c.getValidityType());
-        v.setValidStartAt(c.getValidStartAt());
-        v.setValidEndAt(c.getValidEndAt());
-        v.setValidDays(c.getValidDays());
-        v.setState(deriveState(c, now));
-        v.setDeletable(c.getIssuedCount() == null || c.getIssuedCount() == 0);
-        return v;
-    }
-
-    /** 派生态：停发优先级最高；固定区间叠加未开始/已结束。 */
-    private String deriveState(Coupon c, LocalDateTime now) {
-        if (!ValidFlag.isEnabled(c.getIsValid())) {
-            return "STOPPED";
-        }
-        boolean soldOut = c.getIssuedCount() != null && c.getTotalCount() != null
-                && c.getIssuedCount() >= c.getTotalCount();
-        if (CouponValidityType.FIXED_RANGE.is(c.getValidityType())) {
-            if (c.getValidStartAt() != null && now.isBefore(c.getValidStartAt())) {
-                return "NOT_STARTED";
-            }
-            if (c.getValidEndAt() != null && now.isAfter(c.getValidEndAt())) {
-                return "ENDED";
-            }
-        }
-        return soldOut ? "SOLD_OUT" : "ONGOING";
-    }
 }

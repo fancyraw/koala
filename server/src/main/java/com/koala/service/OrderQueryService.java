@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
+import com.koala.converter.OrderConverter;
 import com.koala.dto.order.AdminOrderView;
-import com.koala.dto.order.OrderItemView;
 import com.koala.dto.order.OrderPreviewRequest;
 import com.koala.dto.order.OrderPreviewView;
 import com.koala.dto.order.OrderView;
@@ -82,14 +82,14 @@ public class OrderQueryService {
         Map<String, List<OrderItem>> itemMap = itemsByOrderNo(
                 p.getRecords().stream().map(Order::getOrderNo).collect(Collectors.toList()));
         List<OrderView> list = p.getRecords().stream()
-                .map(o -> toView(o, itemMap.getOrDefault(o.getOrderNo(), Collections.emptyList())))
+                .map(o -> OrderConverter.toView(o, itemMap.getOrDefault(o.getOrderNo(), Collections.emptyList())))
                 .collect(Collectors.toList());
         return new PageResult<>(list, p.getTotal(), p.getCurrent(), p.getSize());
     }
 
     public OrderView detail(Long userId, String orderNo) {
         Order order = requireOwnedOrder(userId, orderNo);
-        return toView(order, orderItemRepository.findByOrderNo(orderNo));
+        return OrderConverter.toView(order, orderItemRepository.findByOrderNo(orderNo));
     }
 
     public PageResult<AdminOrderView> adminList(String keyword, Integer status, long page, long size) {
@@ -108,7 +108,7 @@ public class OrderQueryService {
                         p.getRecords().stream().map(Order::getUserId).collect(Collectors.toSet()))
                 .stream().collect(Collectors.toMap(User::getId, User::getNickname));
         List<AdminOrderView> list = p.getRecords().stream()
-                .map(o -> toAdminView(o, itemMap.getOrDefault(o.getOrderNo(), Collections.emptyList()),
+                .map(o -> OrderConverter.toAdminView(o, itemMap.getOrDefault(o.getOrderNo(), Collections.emptyList()),
                         nickMap.get(o.getUserId())))
                 .collect(Collectors.toList());
         return new PageResult<>(list, p.getTotal(), p.getCurrent(), p.getSize());
@@ -121,7 +121,7 @@ public class OrderQueryService {
         }
         List<OrderItem> items = orderItemRepository.findByOrderNo(orderNo);
         User user = userRepository.findById(order.getUserId());
-        return toAdminView(order, items, user != null ? user.getNickname() : null);
+        return OrderConverter.toAdminView(order, items, user != null ? user.getNickname() : null);
     }
 
     /** 校验订单归属并返回实体；用户软删的订单不再对本人可见。跨 Service 共享的守卫。 */
@@ -137,68 +137,5 @@ public class OrderQueryService {
     private Map<String, List<OrderItem>> itemsByOrderNo(List<String> orderNos) {
         return orderItemRepository.findByOrderNos(orderNos)
                 .stream().collect(Collectors.groupingBy(OrderItem::getOrderNo));
-    }
-
-    private OrderView toView(Order o, List<OrderItem> items) {
-        OrderView v = new OrderView();
-        v.setOrderNo(o.getOrderNo());
-        v.setUserId(o.getUserId());
-        v.setReceiverName(o.getReceiverName());
-        v.setReceiverPhone(o.getReceiverPhone());
-        v.setReceiverAddress(o.getReceiverAddress());
-        v.setProductAmount(o.getProductAmount());
-        v.setCouponDiscount(o.getCouponDiscount());
-        v.setShippingFee(o.getShippingFee());
-        v.setPayAmount(o.getPayAmount());
-        v.setLogisticsCompany(o.getLogisticsCompany());
-        v.setLogisticsNo(o.getLogisticsNo());
-        v.setStatus(o.getStatus());
-        v.setRemark(o.getRemark());
-        v.setPaidAt(o.getPaidAt());
-        v.setShippedAt(o.getShippedAt());
-        v.setCompletedAt(o.getCompletedAt());
-        v.setCanceledAt(o.getCanceledAt());
-        v.setExpireAt(o.getExpireAt());
-        v.setCreatedAt(o.getCreatedAt());
-        v.setItems(items.stream().map(this::toItemView).collect(Collectors.toList()));
-        return v;
-    }
-
-    private AdminOrderView toAdminView(Order o, List<OrderItem> items, String nickname) {
-        AdminOrderView v = new AdminOrderView();
-        v.setOrderNo(o.getOrderNo());
-        v.setUserId(o.getUserId());
-        v.setNickname(nickname);
-        v.setReceiverName(o.getReceiverName());
-        v.setReceiverPhone(o.getReceiverPhone());
-        v.setReceiverAddress(o.getReceiverAddress());
-        v.setProductAmount(o.getProductAmount());
-        v.setCouponDiscount(o.getCouponDiscount());
-        v.setShippingFee(o.getShippingFee());
-        v.setPayAmount(o.getPayAmount());
-        v.setLogisticsCompany(o.getLogisticsCompany());
-        v.setLogisticsNo(o.getLogisticsNo());
-        v.setStatus(o.getStatus());
-        v.setRemark(o.getRemark());
-        v.setPaidAt(o.getPaidAt());
-        v.setShippedAt(o.getShippedAt());
-        v.setCompletedAt(o.getCompletedAt());
-        v.setCanceledAt(o.getCanceledAt());
-        v.setCreatedAt(o.getCreatedAt());
-        v.setItems(items.stream().map(this::toItemView).collect(Collectors.toList()));
-        return v;
-    }
-
-    private OrderItemView toItemView(OrderItem item) {
-        OrderItemView v = new OrderItemView();
-        v.setProductId(item.getProductId());
-        v.setSkuId(item.getSkuId());
-        v.setProductName(item.getProductName());
-        v.setSkuName(item.getSkuName());
-        v.setProductImage(item.getProductImage());
-        v.setUnitPrice(item.getUnitPrice());
-        v.setQuantity(item.getQuantity());
-        v.setSubtotal(item.getSubtotal());
-        return v;
     }
 }

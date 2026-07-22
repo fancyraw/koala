@@ -1,6 +1,7 @@
 package com.koala.service.impl;
 
 import com.koala.common.constant.RedisKeys;
+import com.koala.converter.CouponConverter;
 import com.koala.dto.coupon.GrantResultView;
 import com.koala.dto.coupon.UserCouponView;
 import com.koala.entity.Coupon;
@@ -35,8 +36,6 @@ import java.util.stream.Collectors;
 @Service
 public class CouponServiceImpl implements CouponService {
 
-    private static final int NEAR_EXPIRY_DAYS = 3;
-
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final RedissonClient redisson;
@@ -66,7 +65,7 @@ public class CouponServiceImpl implements CouponService {
             }
             UserCoupon uc = grantOne(userId, coupon.getId(), now);
             if (uc != null) {
-                granted.add(toView(uc, coupon, now));
+                granted.add(CouponConverter.toView(uc, coupon, now));
             }
         }
 
@@ -88,7 +87,7 @@ public class CouponServiceImpl implements CouponService {
                 .stream().collect(Collectors.toMap(Coupon::getId, c -> c));
 
         return rows.stream()
-                .map(uc -> toView(uc, couponMap.get(uc.getCouponId()), now))
+                .map(uc -> CouponConverter.toView(uc, couponMap.get(uc.getCouponId()), now))
                 // 锁定态(3)对用户隐藏，等价占用中；其余按请求 status 过滤
                 .filter(v -> !UserCouponStatus.LOCKED.is(v.getStatus()))
                 .filter(v -> status == null || v.getStatus().equals(status))
@@ -161,7 +160,7 @@ public class CouponServiceImpl implements CouponService {
         uc.setUserId(userId);
         uc.setCouponId(couponId);
         uc.setStatus(UserCouponStatus.UNUSED.code());
-        uc.setExpireAt(computeExpireAt(coupon, now));
+        uc.setExpireAt(CouponConverter.computeExpireAt(coupon, now));
         // 唯一索引兜底：并发下发时 insert 抛 DuplicateKeyException，
         // Spring 视其为需回滚的 DataAccessException，`incrementIssuedCas` 会随事务撤销，
         // 无需手动 decrementIssued。异常由调用者 catch 后视作幂等。
@@ -169,35 +168,4 @@ public class CouponServiceImpl implements CouponService {
         return uc;
     }
 
-    private LocalDateTime computeExpireAt(Coupon coupon, LocalDateTime now) {
-        if (CouponValidityType.FIXED_RANGE.is(coupon.getValidityType())) {
-            return coupon.getValidEndAt();
-        }
-        int days = coupon.getValidDays() != null ? coupon.getValidDays() : 0;
-        return now.plusDays(days);
-    }
-
-    private UserCouponView toView(UserCoupon uc, Coupon coupon, LocalDateTime now) {
-        UserCouponView v = new UserCouponView();
-        v.setId(uc.getId());
-        v.setCouponId(uc.getCouponId());
-        v.setGrantedAt(uc.getGrantedAt());
-        v.setUsedAt(uc.getUsedAt());
-        v.setExpireAt(uc.getExpireAt());
-        if (coupon != null) {
-            v.setName(coupon.getName());
-            v.setType(coupon.getType());
-            v.setDiscountAmount(coupon.getDiscountAmount());
-            v.setMinSpend(coupon.getMinSpend());
-        }
-        // 懒过期：未使用但已过到期时刻 → 视为已过期(2)
-        int status = uc.getStatus();
-        if (UserCouponStatus.UNUSED.is(status) && uc.getExpireAt() != null && uc.getExpireAt().isBefore(now)) {
-            status = UserCouponStatus.EXPIRED.code();
-        }
-        v.setStatus(status);
-        v.setNearExpiry(UserCouponStatus.UNUSED.is(status) && uc.getExpireAt() != null
-                && !uc.getExpireAt().isAfter(now.plusDays(NEAR_EXPIRY_DAYS)));
-        return v;
-    }
 }

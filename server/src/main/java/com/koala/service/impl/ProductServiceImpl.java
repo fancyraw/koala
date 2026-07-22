@@ -1,11 +1,11 @@
 package com.koala.service.impl;
 
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
+import com.koala.converter.ProductConverter;
 import com.koala.dto.product.AdminProductView;
 import com.koala.dto.product.ProductCardView;
 import com.koala.dto.product.ProductDetailView;
@@ -33,11 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** 低库存预警阈值（后台黄标）：0 < 总库存 < 20。 */
 @Service
 public class ProductServiceImpl implements ProductService {
-
-    private static final int LOW_STOCK_THRESHOLD = 20;
 
     private final ProductRepository productRepository;
     private final ProductSkuRepository skuRepository;
@@ -77,20 +74,10 @@ public class ProductServiceImpl implements ProductService {
         }
         Map<Long, List<ProductSku>> skuMap = skusByProduct(productIds(products));
         Map<Long, String> tagNames = tagNames(products);
-        return products.stream().map(prod -> {
-            List<ProductSku> skus = skuMap.getOrDefault(prod.getId(), Collections.emptyList());
-            ProductCardView v = new ProductCardView();
-            v.setId(prod.getId());
-            v.setName(prod.getName());
-            v.setMainImage(prod.getMainImage());
-            v.setTagName(tagNames.get(prod.getTagId()));
-            v.setRecommended(ValidFlag.isEnabled(prod.getIsRecommended()));
-            v.setHighlight(firstHighlight(prod.getHighlights()));
-            v.setMinPrice(minPrice(skus));
-            v.setSalesCount(prod.getSalesCount());
-            v.setSoldOut(isSoldOut(skus));
-            return v;
-        }).collect(Collectors.toList());
+        return products.stream().map(prod -> ProductConverter.toCard(prod,
+                        skuMap.getOrDefault(prod.getId(), Collections.emptyList()),
+                        tagNames.get(prod.getTagId())))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -105,16 +92,16 @@ public class ProductServiceImpl implements ProductService {
         v.setId(prod.getId());
         v.setName(prod.getName());
         v.setMainImage(prod.getMainImage());
-        v.setDetailImages(parseArray(prod.getDetailImages()));
+        v.setDetailImages(ProductConverter.parseArray(prod.getDetailImages()));
         v.setCategoryId(prod.getCategoryId());
         v.setCategoryName(categoryName(prod.getCategoryId()));
         v.setTagId(prod.getTagId());
         v.setTagName(tagName(prod.getTagId()));
         v.setRecommended(ValidFlag.isEnabled(prod.getIsRecommended()));
-        v.setHighlights(parseArray(prod.getHighlights()));
+        v.setHighlights(ProductConverter.parseArray(prod.getHighlights()));
         v.setPerOrderLimit(prod.getPerOrderLimit());
         v.setSalesCount(prod.getSalesCount());
-        v.setSoldOut(isSoldOut(skus));
+        v.setSoldOut(ProductConverter.isSoldOut(skus));
         v.setSkus(skus.stream().map(SkuView::of).collect(Collectors.toList()));
         return v;
     }
@@ -130,10 +117,12 @@ public class ProductServiceImpl implements ProductService {
         Map<Long, String> tagNames = tagNames(p.getRecords());
         Map<Long, String> catNames = categoryNames(p.getRecords());
 
-        List<AdminProductView> list = p.getRecords().stream().map(prod -> {
-            List<ProductSku> skus = skuMap.getOrDefault(prod.getId(), Collections.emptyList());
-            return toAdminView(prod, skus, tagNames.get(prod.getTagId()), catNames.get(prod.getCategoryId()));
-        }).collect(Collectors.toList());
+        List<AdminProductView> list = p.getRecords().stream().map(prod -> ProductConverter.toAdminView(
+                        prod,
+                        skuMap.getOrDefault(prod.getId(), Collections.emptyList()),
+                        tagNames.get(prod.getTagId()),
+                        catNames.get(prod.getCategoryId())))
+                .collect(Collectors.toList());
         return new PageResult<>(list, p.getTotal(), p.getCurrent(), p.getSize());
     }
 
@@ -144,7 +133,7 @@ public class ProductServiceImpl implements ProductService {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
         List<ProductSku> skus = skuRepository.findByProduct(id);
-        return toAdminView(prod, skus, tagName(prod.getTagId()), categoryName(prod.getCategoryId()));
+        return ProductConverter.toAdminView(prod, skus, tagName(prod.getTagId()), categoryName(prod.getCategoryId()));
     }
 
     @Override
@@ -224,30 +213,6 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    private AdminProductView toAdminView(Product prod, List<ProductSku> skus, String tagName, String catName) {
-        AdminProductView v = new AdminProductView();
-        v.setId(prod.getId());
-        v.setName(prod.getName());
-        v.setMainImage(prod.getMainImage());
-        v.setDetailImages(parseArray(prod.getDetailImages()));
-        v.setCategoryId(prod.getCategoryId());
-        v.setCategoryName(catName);
-        v.setTagId(prod.getTagId());
-        v.setTagName(tagName);
-        v.setRecommended(ValidFlag.isEnabled(prod.getIsRecommended()));
-        v.setHighlights(parseArray(prod.getHighlights()));
-        v.setPerOrderLimit(prod.getPerOrderLimit());
-        v.setSalesCount(prod.getSalesCount());
-        v.setIsValid(prod.getIsValid());
-        v.setMinPrice(minPrice(skus));
-        int total = skus.stream().mapToInt(s -> s.getStock() != null ? s.getStock() : 0).sum();
-        v.setTotalStock(total);
-        v.setSoldOut(total == 0);
-        v.setLowStock(total > 0 && total < LOW_STOCK_THRESHOLD);
-        v.setSkus(skus.stream().map(SkuView::of).collect(Collectors.toList()));
-        return v;
-    }
-
     // ---- helpers ----
 
     private Product requireProduct(Long id) {
@@ -301,28 +266,6 @@ public class ProductServiceImpl implements ProductService {
         }
         ProductCategory c = categoryRepository.findById(categoryId);
         return c != null ? c.getName() : null;
-    }
-
-    private static boolean isSoldOut(List<ProductSku> skus) {
-        return skus.stream().allMatch(s -> s.getStock() == null || s.getStock() == 0);
-    }
-
-    private static BigDecimal minPrice(List<ProductSku> skus) {
-        return skus.stream().map(ProductSku::getPrice)
-                .filter(java.util.Objects::nonNull)
-                .min(BigDecimal::compareTo).orElse(null);
-    }
-
-    private static String firstHighlight(String highlightsJson) {
-        List<String> arr = parseArray(highlightsJson);
-        return arr.isEmpty() ? null : arr.get(0);
-    }
-
-    private static List<String> parseArray(String json) {
-        if (StrUtil.isBlank(json)) {
-            return Collections.emptyList();
-        }
-        return JSONUtil.toList(json, String.class);
     }
 
     private static String toJson(List<String> list) {

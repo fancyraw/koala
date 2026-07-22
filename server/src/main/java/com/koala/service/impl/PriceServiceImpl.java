@@ -3,6 +3,7 @@ package com.koala.service.impl;
 import com.koala.common.constant.ConfigKeys;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
+import com.koala.converter.CouponConverter;
 import com.koala.dto.order.OrderItemRequest;
 import com.koala.dto.order.OrderItemView;
 import com.koala.dto.order.OrderPreviewView;
@@ -125,12 +126,12 @@ public class PriceServiceImpl implements PriceService {
         BigDecimal rawDiscount = BigDecimal.ZERO;
         if (bestNoThreshold != null) {
             applied.add(bestNoThreshold);
-            appliedViews.add(appliedView(bestNoThreshold, couponMap.get(bestNoThreshold.getCouponId())));
+            appliedViews.add(CouponConverter.appliedView(bestNoThreshold, couponMap.get(bestNoThreshold.getCouponId())));
             rawDiscount = rawDiscount.add(bestNoThresholdVal);
         }
         if (bestFullReduce != null) {
             applied.add(bestFullReduce);
-            appliedViews.add(appliedView(bestFullReduce, couponMap.get(bestFullReduce.getCouponId())));
+            appliedViews.add(CouponConverter.appliedView(bestFullReduce, couponMap.get(bestFullReduce.getCouponId())));
             rawDiscount = rawDiscount.add(bestFullReduceVal);
         }
         // 券后小计下限 0
@@ -194,13 +195,4 @@ public class PriceServiceImpl implements PriceService {
         return best;
     }
 
-    private PriceResult.AppliedCoupon appliedView(UserCoupon uc, Coupon c) {
-        PriceResult.AppliedCoupon v = new PriceResult.AppliedCoupon();
-        v.setUserCouponId(uc.getId());
-        v.setCouponId(c.getId());
-        v.setCouponType(c.getType());
-        v.setCouponName(c.getName());
-        v.setDiscountAmount(c.getDiscountAmount());
-        return v;
-    }
 }

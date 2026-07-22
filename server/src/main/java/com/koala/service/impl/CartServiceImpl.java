@@ -2,6 +2,7 @@ package com.koala.service.impl;
 
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
+import com.koala.converter.CartConverter;
 import com.koala.dto.cart.CartAddRequest;
 import com.koala.dto.cart.CartItemView;
 import com.koala.dto.cart.CartUpdateRequest;
@@ -42,7 +43,7 @@ public class CartServiceImpl implements CartService {
     public CartView list(Long userId) {
         List<CartItem> items = cartRepository.findByUser(userId);
         if (items.isEmpty()) {
-            return emptyView();
+            return CartConverter.emptyView();
         }
 
         Set<Long> skuIds = items.stream().map(CartItem::getSkuId).collect(Collectors.toSet());
@@ -54,7 +55,7 @@ public class CartServiceImpl implements CartService {
                         .collect(Collectors.toMap(Product::getId, p -> p));
 
         CartView view = new CartView();
-        view.setItems(items.stream().map(it -> toView(it, skuMap, productMap)).collect(Collectors.toList()));
+        view.setItems(items.stream().map(it -> CartConverter.toView(it, skuMap, productMap)).collect(Collectors.toList()));
         view.setTotalCount(view.getItems().stream().mapToInt(CartItemView::getQuantity).sum());
 
         BigDecimal amount = BigDecimal.ZERO;
@@ -158,43 +159,4 @@ public class CartServiceImpl implements CartService {
         return item;
     }
 
-    private CartItemView toView(CartItem item, Map<Long, ProductSku> skuMap, Map<Long, Product> productMap) {
-        ProductSku sku = skuMap.get(item.getSkuId());
-        Product product = sku != null ? productMap.get(sku.getProductId()) : null;
-
-        CartItemView v = new CartItemView();
-        v.setId(item.getId());
-        v.setProductId(item.getProductId());
-        v.setSkuId(item.getSkuId());
-        v.setQuantity(item.getQuantity());
-        v.setChecked(ValidFlag.isEnabled(item.getChecked()));
-
-        boolean invalid = sku == null || product == null
-                || !ValidFlag.isEnabled(product.getIsValid());
-        v.setInvalid(invalid);
-        if (sku != null) {
-            v.setSkuName(sku.getName());
-            v.setPrice(sku.getPrice());
-            v.setStock(sku.getStock());
-        } else {
-            v.setPrice(BigDecimal.ZERO);
-            v.setStock(0);
-        }
-        if (product != null) {
-            v.setProductName(product.getName());
-            v.setMainImage(product.getMainImage());
-            v.setPerOrderLimit(product.getPerOrderLimit());
-        }
-        v.setSoldOut(!invalid && (sku.getStock() == null || sku.getStock() == 0));
-        return v;
-    }
-
-    private CartView emptyView() {
-        CartView view = new CartView();
-        view.setItems(Collections.emptyList());
-        view.setTotalCount(0);
-        view.setCheckedCount(0);
-        view.setCheckedAmount(BigDecimal.ZERO);
-        return view;
-    }
 }

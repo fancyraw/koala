@@ -5,6 +5,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.koala.common.exception.BizException;
 import com.koala.common.util.SerialNoGenerator;
+import com.koala.converter.AfterSaleConverter;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
 import com.koala.dto.aftersale.AdminAfterSaleView;
@@ -126,13 +127,13 @@ public class AfterSaleServiceImpl implements AfterSaleService {
     @Override
     public PageResult<AfterSaleView> myList(Long userId, Integer status, long page, long size) {
         IPage<AfterSale> p = afterSaleRepository.pageByUser(userId, status, page, size);
-        List<AfterSaleView> list = p.getRecords().stream().map(this::toView).collect(Collectors.toList());
+        List<AfterSaleView> list = p.getRecords().stream().map(AfterSaleConverter::toView).collect(Collectors.toList());
         return new PageResult<>(list, p.getTotal(), p.getCurrent(), p.getSize());
     }
 
     @Override
     public AfterSaleView detail(Long userId, String afterSaleNo) {
-        return toView(requireOwned(userId, afterSaleNo));
+        return AfterSaleConverter.toView(requireOwned(userId, afterSaleNo));
     }
 
     // ---- 后台 ----
@@ -152,7 +153,7 @@ public class AfterSaleServiceImpl implements AfterSaleService {
         Map<Long, String> nickMap = userRepository.findByIds(uids).stream()
                 .collect(Collectors.toMap(User::getId, User::getNickname));
         List<AdminAfterSaleView> list = p.getRecords().stream()
-                .map(as -> toAdminView(as, nickMap.get(as.getUserId())))
+                .map(as -> AfterSaleConverter.toAdminView(as, nickMap.get(as.getUserId())))
                 .collect(Collectors.toList());
         return new PageResult<>(list, p.getTotal(), p.getCurrent(), p.getSize());
     }
@@ -164,7 +165,7 @@ public class AfterSaleServiceImpl implements AfterSaleService {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
         User user = userRepository.findById(as.getUserId());
-        return toAdminView(as, user != null ? user.getNickname() : null);
+        return AfterSaleConverter.toAdminView(as, user != null ? user.getNickname() : null);
     }
 
     @Override
@@ -257,49 +258,6 @@ public class AfterSaleServiceImpl implements AfterSaleService {
             throw new BizException(ErrorCode.DATA_NOT_FOUND);
         }
         return as;
-    }
-
-    private AfterSaleView toView(AfterSale as) {
-        AfterSaleView v = new AfterSaleView();
-        v.setAfterSaleNo(as.getAfterSaleNo());
-        v.setOrderNo(as.getOrderNo());
-        v.setType(as.getType());
-        v.setReason(as.getReason());
-        v.setRemark(as.getRemark());
-        v.setEvidenceImages(parseImages(as.getEvidenceImages()));
-        v.setRefundAmount(as.getRefundAmount());
-        v.setReturnTrackingNo(as.getReturnTrackingNo());
-        v.setStatus(as.getStatus());
-        v.setAuditRemark(as.getAuditRemark());
-        v.setCreatedAt(as.getCreatedAt());
-        v.setUpdatedAt(as.getUpdatedAt());
-        return v;
-    }
-
-    private AdminAfterSaleView toAdminView(AfterSale as, String nickname) {
-        AdminAfterSaleView v = new AdminAfterSaleView();
-        v.setAfterSaleNo(as.getAfterSaleNo());
-        v.setOrderNo(as.getOrderNo());
-        v.setUserId(as.getUserId());
-        v.setNickname(nickname);
-        v.setType(as.getType());
-        v.setReason(as.getReason());
-        v.setRemark(as.getRemark());
-        v.setEvidenceImages(parseImages(as.getEvidenceImages()));
-        v.setRefundAmount(as.getRefundAmount());
-        v.setReturnTrackingNo(as.getReturnTrackingNo());
-        v.setStatus(as.getStatus());
-        v.setAuditRemark(as.getAuditRemark());
-        v.setCreatedAt(as.getCreatedAt());
-        v.setUpdatedAt(as.getUpdatedAt());
-        return v;
-    }
-
-    private List<String> parseImages(String json) {
-        if (StrUtil.isBlank(json)) {
-            return Collections.emptyList();
-        }
-        return JSONUtil.toList(json, String.class);
     }
 
     private String genAfterSaleNo() {
