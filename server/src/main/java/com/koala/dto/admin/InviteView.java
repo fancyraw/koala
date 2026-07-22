@@ -6,7 +6,7 @@ import lombok.Data;
 /** 超管生成的一次性邀请二维码/链接。 */
 @Data
 @AllArgsConstructor
-public class InviteResponse {
+public class InviteView {
 
     /** 一次性邀请 token(校验用)。 */
     private String inviteToken;

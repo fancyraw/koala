@@ -2,7 +2,7 @@ package com.koala.converter;
 
 import com.koala.dto.coupon.AdminCouponView;
 import com.koala.dto.coupon.UserCouponView;
-import com.koala.dto.order.PriceResult;
+import com.koala.service.pricing.PriceResult;
 import com.koala.entity.Coupon;
 import com.koala.entity.UserCoupon;
 import com.koala.enums.CouponValidityType;

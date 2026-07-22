@@ -8,8 +8,8 @@ import java.util.List;
 @Data
 public class DashboardView {
 
-    private TodayOverview today;
-    private Pending pending;
-    private List<TrendPoint> salesTrend;
-    private List<HotProduct> hotProducts;
+    private TodayOverviewView today;
+    private PendingView pending;
+    private List<TrendPointView> salesTrend;
+    private List<HotProductView> hotProducts;
 }

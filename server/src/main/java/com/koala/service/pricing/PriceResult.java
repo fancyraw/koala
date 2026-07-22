@@ -1,4 +1,4 @@
-package com.koala.dto.order;
+package com.koala.service.pricing;
 
 import lombok.Data;
 

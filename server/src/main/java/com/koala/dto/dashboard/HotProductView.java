@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 /** 热销Top5一项：商品 + 销量 + 销售额。 */
 @Data
-public class HotProduct {
+public class HotProductView {
 
     private Long productId;
     private String productName;

@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 /** 今日概览：销售额/订单/新增用户,各带较昨日环比(%)。 */
 @Data
-public class TodayOverview {
+public class TodayOverviewView {
 
     private BigDecimal salesAmount;
     private long orderCount;

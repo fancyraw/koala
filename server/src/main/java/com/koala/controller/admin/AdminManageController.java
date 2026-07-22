@@ -5,7 +5,7 @@ import com.koala.common.result.Result;
 import com.koala.dto.admin.AcceptInviteRequest;
 import com.koala.dto.admin.AdminStatusRequest;
 import com.koala.dto.admin.AdminView;
-import com.koala.dto.admin.InviteResponse;
+import com.koala.dto.admin.InviteView;
 import com.koala.service.AdminManageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,7 +38,7 @@ public class AdminManageController {
 
     @Operation(summary = "生成一次性邀请二维码/链接")
     @PostMapping("/invite")
-    public Result<InviteResponse> invite() {
+    public Result<InviteView> invite() {
         return Result.success(adminManageService.invite());
     }
 

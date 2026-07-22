@@ -7,7 +7,7 @@ import com.koala.common.result.ErrorCode;
 import com.koala.config.WechatProperties;
 import com.koala.dto.admin.AcceptInviteRequest;
 import com.koala.dto.admin.AdminView;
-import com.koala.dto.admin.InviteResponse;
+import com.koala.dto.admin.InviteView;
 import com.koala.entity.Admin;
 import com.koala.enums.ValidFlag;
 import com.koala.infra.wechat.WechatAuthClient;
@@ -43,10 +43,10 @@ public class AdminManageService {
         this.adminRepository = adminRepository;
     }
 
-    public InviteResponse invite() {
+    public InviteView invite() {
         String token = IdUtil.fastSimpleUUID();
         redis.opsForValue().set(RedisKeys.ADMIN_INVITE_TOKEN + token, "1", TTL_SECONDS, TimeUnit.SECONDS);
-        return new InviteResponse(token, buildInviteUrl(token), TTL_SECONDS);
+        return new InviteView(token, buildInviteUrl(token), TTL_SECONDS);
     }
 
     public void accept(AcceptInviteRequest req) {

@@ -3,10 +3,10 @@ package com.koala.service;
 import cn.hutool.json.JSONUtil;
 import com.koala.common.constant.RedisKeys;
 import com.koala.dto.dashboard.DashboardView;
-import com.koala.dto.dashboard.HotProduct;
-import com.koala.dto.dashboard.Pending;
-import com.koala.dto.dashboard.TodayOverview;
-import com.koala.dto.dashboard.TrendPoint;
+import com.koala.dto.dashboard.HotProductView;
+import com.koala.dto.dashboard.PendingView;
+import com.koala.dto.dashboard.TodayOverviewView;
+import com.koala.dto.dashboard.TrendPointView;
 import com.koala.entity.Order;
 import com.koala.entity.OrderItem;
 import com.koala.enums.AfterSaleStatus;
@@ -85,7 +85,7 @@ public class DashboardService {
         return view;
     }
 
-    private TodayOverview buildToday(LocalDate today, List<Order> paidOrders) {
+    private TodayOverviewView buildToday(LocalDate today, List<Order> paidOrders) {
         LocalDateTime todayStart = today.atStartOfDay();
         LocalDateTime yesterdayStart = todayStart.minusDays(1);
 
@@ -101,7 +101,7 @@ public class DashboardService {
         long todayNewUsers = countNewUsers(todayStart, todayStart.plusDays(1));
         long yesterdayNewUsers = countNewUsers(yesterdayStart, todayStart);
 
-        TodayOverview t = new TodayOverview();
+        TodayOverviewView t = new TodayOverviewView();
         t.setSalesAmount(todaySales);
         t.setOrderCount(todayOrders.size());
         t.setNewUserCount(todayNewUsers);
@@ -113,8 +113,8 @@ public class DashboardService {
         return t;
     }
 
-    private Pending buildPending() {
-        Pending p = new Pending();
+    private PendingView buildPending() {
+        PendingView p = new PendingView();
         p.setToShip(orderRepository.countByStatus(OrderStatus.WAIT_SHIP.code()));
         // 需店主动手的售后:待审核 / 买家已寄回待确认收货
         p.setAfterSale(afterSaleRepository.countByStatuses(Arrays.asList(
@@ -122,7 +122,7 @@ public class DashboardService {
         return p;
     }
 
-    private List<TrendPoint> buildTrend(LocalDate today, int rangeDays, List<Order> paidOrders) {
+    private List<TrendPointView> buildTrend(LocalDate today, int rangeDays, List<Order> paidOrders) {
         Map<String, BigDecimal> byDay = new LinkedHashMap<>();
         for (int i = rangeDays - 1; i >= 0; i--) {
             byDay.put(today.minusDays(i).format(DAY), BigDecimal.ZERO);
@@ -134,9 +134,9 @@ public class DashboardService {
                 byDay.put(day, cur.add(nvl(o.getPayAmount())));
             }
         }
-        List<TrendPoint> list = new ArrayList<>(byDay.size());
+        List<TrendPointView> list = new ArrayList<>(byDay.size());
         byDay.forEach((date, amount) -> {
-            TrendPoint tp = new TrendPoint();
+            TrendPointView tp = new TrendPointView();
             tp.setDate(date);
             tp.setAmount(amount);
             list.add(tp);
@@ -144,17 +144,17 @@ public class DashboardService {
         return list;
     }
 
-    private List<HotProduct> buildHotProducts(List<Order> paidOrders) {
+    private List<HotProductView> buildHotProducts(List<Order> paidOrders) {
         if (paidOrders.isEmpty()) {
             return Collections.emptyList();
         }
         List<String> orderNos = paidOrders.stream().map(Order::getOrderNo).collect(Collectors.toList());
         List<OrderItem> items = orderItemRepository.findByOrderNos(orderNos);
 
-        Map<Long, HotProduct> agg = new LinkedHashMap<>();
+        Map<Long, HotProductView> agg = new LinkedHashMap<>();
         for (OrderItem it : items) {
-            HotProduct hp = agg.computeIfAbsent(it.getProductId(), pid -> {
-                HotProduct n = new HotProduct();
+            HotProductView hp = agg.computeIfAbsent(it.getProductId(), pid -> {
+                HotProductView n = new HotProductView();
                 n.setProductId(pid);
                 n.setProductName(it.getProductName());
                 n.setQuantity(0);
@@ -165,7 +165,7 @@ public class DashboardService {
             hp.setAmount(hp.getAmount().add(nvl(it.getSubtotal())));
         }
         return agg.values().stream()
-                .sorted(Comparator.comparingLong(HotProduct::getQuantity).reversed()
+                .sorted(Comparator.comparingLong(HotProductView::getQuantity).reversed()
                         .thenComparing(hp -> hp.getAmount(), Comparator.reverseOrder()))
                 .limit(HOT_LIMIT)
                 .collect(Collectors.toList());

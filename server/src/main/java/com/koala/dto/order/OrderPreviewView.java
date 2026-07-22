@@ -1,5 +1,6 @@
 package com.koala.dto.order;
 
+import com.koala.service.pricing.PriceResult;
 import lombok.Data;
 
 import java.math.BigDecimal;

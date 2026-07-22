@@ -4,7 +4,7 @@ import lombok.Data;
 
 /** 待处理事项：店主要动手的活。 */
 @Data
-public class Pending {
+public class PendingView {
 
     /** 待发货订单数(status=1)。 */
     private long toShip;
