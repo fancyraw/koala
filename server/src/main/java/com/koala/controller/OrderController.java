@@ -17,13 +17,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 
 @Tag(name = "C端-订单")
+@Validated
 @RestController
 public class OrderController {
 
@@ -62,8 +66,8 @@ public class OrderController {
     @GetMapping("/orders")
     public Result<PageResult<OrderView>> myOrders(
             @RequestParam(required = false) Integer status,
-            @RequestParam(defaultValue = "1") long page,
-            @RequestParam(defaultValue = "20") long size) {
+            @RequestParam(defaultValue = "1") @Min(value = 1, message = "page 不能小于 1") long page,
+            @RequestParam(defaultValue = "20") @Min(value = 1, message = "size 不能小于 1") @Max(value = 200, message = "size 不能大于 200") long size) {
         return Result.success(orderService.myOrders(AuthContext.requireUserId(), status, page, size));
     }
 

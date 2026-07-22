@@ -3,6 +3,8 @@ package com.koala.service.impl;
 import com.koala.entity.SysConfig;
 import com.koala.repository.SysConfigRepository;
 import com.koala.service.ConfigService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 public class ConfigServiceImpl implements ConfigService {
 
@@ -31,6 +34,16 @@ public class ConfigServiceImpl implements ConfigService {
         }
         cache.clear();
         cache.putAll(fresh);
+    }
+
+    /** 多实例部署时，其他节点的 save() 不会立即同步；定期从 DB 拉一次，最长滞后 30s。 */
+    @Scheduled(fixedDelay = 30_000L, initialDelay = 30_000L)
+    void scheduledReload() {
+        try {
+            reload();
+        } catch (Exception e) {
+            log.warn("定时刷新 sys_config 缓存失败", e);
+        }
     }
 
     @Override

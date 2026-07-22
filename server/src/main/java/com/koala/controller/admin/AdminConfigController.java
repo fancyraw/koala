@@ -2,9 +2,11 @@ package com.koala.controller.admin;
 
 import com.koala.common.auth.AuthContext;
 import com.koala.common.result.Result;
+import com.koala.dto.admin.SysConfigView;
 import com.koala.dto.content.ConfigSaveRequest;
-import com.koala.entity.SysConfig;
 import com.koala.service.ConfigService;
+
+import java.util.stream.Collectors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,8 +32,11 @@ public class AdminConfigController {
 
     @Operation(summary = "读取某分组配置(配送/支付/订单超时/维护开关group=system)")
     @GetMapping
-    public Result<List<SysConfig>> list(@RequestParam String group) {
-        return Result.success(configService.listByGroup(group));
+    public Result<List<SysConfigView>> list(@RequestParam String group) {
+        List<SysConfigView> views = configService.listByGroup(group).stream()
+                .map(SysConfigView::from)
+                .collect(Collectors.toList());
+        return Result.success(views);
     }
 
     @Operation(summary = "保存分组配置(改策略不发版)")

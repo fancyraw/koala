@@ -13,8 +13,11 @@ import com.koala.service.CouponService;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,6 +40,11 @@ public class CouponServiceImpl implements CouponService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final RedissonClient redisson;
+
+    /** 自注入代理：私有事务方法需走代理，否则 @Transactional 失效。 */
+    @Autowired
+    @Lazy
+    private CouponServiceImpl self;
 
     public CouponServiceImpl(CouponRepository couponRepository, UserCouponRepository userCouponRepository,
                              RedissonClient redisson) {
@@ -105,7 +113,7 @@ public class CouponServiceImpl implements CouponService {
         }).collect(Collectors.toList());
     }
 
-    /** 单券下发：用户级分布式锁 + 模板 version 乐观锁条件更新 + 唯一索引兜底。 */
+    /** 单券下发：用户级分布式锁 + 事务包裹 CAS+插入，保证发行计数与用户券行原子提交。 */
     private UserCoupon grantOne(Long userId, Long couponId, LocalDateTime now) {
         RLock lock = redisson.getLock(LOCK_PREFIX + userId + ":" + couponId);
         boolean locked = false;
@@ -114,33 +122,12 @@ public class CouponServiceImpl implements CouponService {
             if (!locked) {
                 return null;
             }
-            // 锁内复核：未领过
-            if (userCouponRepository.existsByUserAndCoupon(userId, couponId)) {
-                return null;
-            }
-            Coupon coupon = couponRepository.findById(couponId);
-            if (coupon == null || !ValidFlag.isEnabled(coupon.getIsValid())
-                    || coupon.getIssuedCount() >= coupon.getTotalCount()) {
-                return null;
-            }
-            // version 乐观锁 + issued_count<total_count 条件更新，防超发
-            if (couponRepository.incrementIssuedCas(couponId, coupon.getVersion()) == 0) {
-                return null;
-            }
-
-            UserCoupon uc = new UserCoupon();
-            uc.setUserId(userId);
-            uc.setCouponId(couponId);
-            uc.setStatus(UserCouponStatus.UNUSED.code());
-            uc.setExpireAt(computeExpireAt(coupon, now));
             try {
-                userCouponRepository.insert(uc);
+                return self.tryGrantOne(userId, couponId, now);
             } catch (DuplicateKeyException e) {
-                // 唯一索引兜底：已领过则回滚发行计数
-                couponRepository.decrementIssued(couponId);
+                // 事务已回滚，issued_count 未变化，视作幂等跳过。
                 return null;
             }
-            return uc;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -149,6 +136,37 @@ public class CouponServiceImpl implements CouponService {
                 lock.unlock();
             }
         }
+    }
+
+    /**
+     * 事务化 CAS+插入：任一步失败整体回滚，避免 issued_count 与 user_coupon 之间发生半提交。
+     * DuplicateKeyException 走上层 catch 视为幂等 —— 事务此时已回滚，issued_count 不会漂移。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public UserCoupon tryGrantOne(Long userId, Long couponId, LocalDateTime now) {
+        // 锁内复核：未领过
+        if (userCouponRepository.existsByUserAndCoupon(userId, couponId)) {
+            return null;
+        }
+        Coupon coupon = couponRepository.findById(couponId);
+        if (coupon == null || !ValidFlag.isEnabled(coupon.getIsValid())
+                || coupon.getIssuedCount() >= coupon.getTotalCount()) {
+            return null;
+        }
+        // version 乐观锁 + issued_count<total_count 条件更新，防超发
+        if (couponRepository.incrementIssuedCas(couponId, coupon.getVersion()) == 0) {
+            return null;
+        }
+        UserCoupon uc = new UserCoupon();
+        uc.setUserId(userId);
+        uc.setCouponId(couponId);
+        uc.setStatus(UserCouponStatus.UNUSED.code());
+        uc.setExpireAt(computeExpireAt(coupon, now));
+        // 唯一索引兜底：并发下发时 insert 抛 DuplicateKeyException，
+        // Spring 视其为需回滚的 DataAccessException，`incrementIssuedCas` 会随事务撤销，
+        // 无需手动 decrementIssued。异常由调用者 catch 后视作幂等。
+        userCouponRepository.insert(uc);
+        return uc;
     }
 
     private LocalDateTime computeExpireAt(Coupon coupon, LocalDateTime now) {

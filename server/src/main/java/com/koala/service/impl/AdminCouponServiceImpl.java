@@ -42,11 +42,18 @@ public class AdminCouponServiceImpl implements AdminCouponService {
         this.userRepository = userRepository;
     }
 
+    /** 券模板总量兜底：state 是派生态无法直接翻 SQL，内存过滤合理但需限制表大小防被撑爆。 */
+    private static final int LIST_HARD_LIMIT = 5000;
+
     @Override
     public PageResult<AdminCouponView> list(String state, long page, long size) {
         LocalDateTime now = LocalDateTime.now();
-        List<AdminCouponView> all = couponRepository.findAll()
-                .stream().map(c -> toView(c, now)).collect(Collectors.toList());
+        List<Coupon> raw = couponRepository.findAll();
+        if (raw.size() >= LIST_HARD_LIMIT) {
+            throw new BizException(ErrorCode.SYSTEM_ERROR.getCode(),
+                    "券模板数量已超上限 " + LIST_HARD_LIMIT + "，请清理历史模板后重试");
+        }
+        List<AdminCouponView> all = raw.stream().map(c -> toView(c, now)).collect(Collectors.toList());
         if (StrUtil.isNotBlank(state)) {
             all = all.stream().filter(v -> state.equals(v.getState())).collect(Collectors.toList());
         }
@@ -90,7 +97,10 @@ public class AdminCouponServiceImpl implements AdminCouponService {
             if (entity.getTotalCount() != null && req.getTotalCount() < entity.getIssuedCount()) {
                 throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "发行总量不能小于已发行量");
             }
-            couponRepository.updateById(entity);
+            // 乐观锁：并发下发或修改会让 updateById 影响 0 行，明确抛错让管理员刷新重试。
+            if (couponRepository.updateById(entity) == 0) {
+                throw new BizException(ErrorCode.BIZ_ERROR.getCode(), "券模板已被并发修改，请刷新后重试");
+            }
         }
         return entity.getId();
     }

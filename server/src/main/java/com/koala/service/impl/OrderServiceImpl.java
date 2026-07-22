@@ -171,7 +171,9 @@ public class OrderServiceImpl implements OrderService {
         RLock lock = redisson.getLock(LOCK_PREFIX + userId);
         boolean locked = false;
         try {
-            locked = lock.tryLock(3, 10, TimeUnit.SECONDS);
+            // leaseTime < 0：交给 Redisson watchdog 每 10s 续期，避免长事务（多商品扣库存 + 券锁定 + 多次 insert）
+            // 超过固定租期导致锁提前释放、允许并发第二次提交。
+            locked = lock.tryLock(3, -1, TimeUnit.SECONDS);
             if (!locked) {
                 throw new BizException(ErrorCode.DUPLICATE_SUBMIT);
             }
@@ -265,6 +267,19 @@ public class OrderServiceImpl implements OrderService {
         payment.setStatus(PaymentStatus.PENDING.code());
         paymentRepository.insert(payment);
 
+        // 零元订单：满券叠免邮时 payAmount=0，无需真实调支付渠道，直接推进到已支付流程。
+        // 所有副作用都在当前事务内完成——插入的 order/payment 尚未提交，CAS 一定成功。
+        if (price.getPayAmount().signum() == 0) {
+            orderRepository.markPaidCas(orderNo, now);
+            for (UserCoupon uc : ctx.getAppliedUserCoupons()) {
+                if (userCouponRepository.redeem(uc.getId(), now) > 0) {
+                    couponRepository.incrementUsedCount(uc.getCouponId());
+                }
+            }
+            paymentRepository.markSuccess(orderNo, null, now);
+            eventPublisher.publishEvent(new OrderPaidEvent(this, orderNo));
+        }
+
         OrderSubmitView view = new OrderSubmitView();
         view.setOrderNo(orderNo);
         view.setPayAmount(price.getPayAmount());
@@ -279,6 +294,10 @@ public class OrderServiceImpl implements OrderService {
         }
         if (order.getExpireAt() != null && order.getExpireAt().isBefore(LocalDateTime.now())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单已超时");
+        }
+        // 零元订单在提交事务里已直接置为 WAIT_SHIP，正常不会到这里；保底再拒绝一次。
+        if (order.getPayAmount() != null && order.getPayAmount().signum() == 0) {
+            throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "零元订单无需支付");
         }
         PaymentChannel channel = paymentChannelFactory.get(
                 configService.get("payment", "active_channel", "wechat"));
@@ -315,7 +334,15 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime now = LocalDateTime.now();
         // order 0→1 CAS
         if (orderRepository.markPaidCas(orderNo, now) == 0) {
-            return true; // 并发已处理
+            // 与超时取消 race：重新读订单，若已被取消而钱到账则登记待退款，事后由 admin/售后触发实际退款。
+            Order latest = orderRepository.findByNo(orderNo);
+            if (latest != null && OrderStatus.CANCELED.is(latest.getStatus())) {
+                paymentRepository.markSuccess(orderNo, notify.getTransactionId(), now);
+                log.error("订单已取消但收到成功支付回调，需人工介入退款: orderNo={}, txId={}, amount={}",
+                        orderNo, notify.getTransactionId(), notify.getPayAmount());
+                return true;
+            }
+            return true; // 已被其他节点处理
         }
         // 券 3→1 核销 + coupon.used_count+1
         for (OrderCoupon oc : orderCouponRepository.findByOrderNo(orderNo)) {
@@ -435,7 +462,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void adminRefund(OrderRefundRequest req) {
         Order order = orderRepository.findByNo(req.getNo());
         if (order == null) {
@@ -444,13 +470,17 @@ public class OrderServiceImpl implements OrderService {
         if (!OrderStatus.COMPLETED.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅已完成订单可手动退款");
         }
-        // 3→5 售后中
-        orderRepository.updateStatusCas(req.getNo(), OrderStatus.COMPLETED.code(), OrderStatus.AFTER_SALE.code());
-        doRefund(order, req.getReason());
+        // 3→5 售后中：CAS 拿到独占权，返回 0 说明并发已进入售后流程。
+        if (orderRepository.updateStatusCas(req.getNo(),
+                OrderStatus.COMPLETED.code(), OrderStatus.AFTER_SALE.code()) == 0) {
+            throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单状态已变更，请刷新重试");
+        }
+        // CAS 成功后 order 已 == AFTER_SALE，reload 一次以获取最新 payment 关联字段。
+        Order latest = orderRepository.findByNo(req.getNo());
+        executeRefund(latest, req.getReason(), OrderStatus.COMPLETED.code());
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void refundForAfterSale(String orderNo, String reason) {
         Order order = orderRepository.findByNo(orderNo);
         if (order == null) {
@@ -459,7 +489,9 @@ public class OrderServiceImpl implements OrderService {
         if (!OrderStatus.AFTER_SALE.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单不在售后中，不可退款");
         }
-        doRefund(order, reason);
+        // 售后侧已保证订单处于 AFTER_SALE；直接进入 CAS + channel + tx-B 流程。
+        // rollbackStatus 传 -1 表示外部渠道失败时不做订单状态回滚（保持 AFTER_SALE，由售后侧处理）。
+        executeRefund(order, reason, -1);
     }
 
     // ---- 定时任务(7.4) ----
@@ -504,8 +536,13 @@ public class OrderServiceImpl implements OrderService {
         return count;
     }
 
-    /** 退款处理(6.5)：调渠道 → payment=3 → 未过期券原路退回 → order 5→6 → 发事件。 */
-    private void doRefund(Order order, String reason) {
+    /**
+     * 退款处理(6.5)：
+     * 1) 调外部支付渠道（无事务，避免持锁跨网络）
+     * 2) 事务 B 内更新 payment.refunded + 未过期券回退 + order 5→6 + 发事件
+     * 渠道失败：如果 rollbackStatus &gt;= 0，把订单 CAS 回滚到该状态；否则保持 AFTER_SALE 由上游处理。
+     */
+    private void executeRefund(Order order, String reason, int rollbackStatus) {
         Payment payment = paymentRepository.findByOrderNoAndStatus(
                 order.getOrderNo(), PaymentStatus.SUCCESS.code());
         PaymentChannel channel = paymentChannelFactory.get(
@@ -516,33 +553,66 @@ public class OrderServiceImpl implements OrderService {
         cmd.setRefundAmount(order.getPayAmount());
         cmd.setTotalAmount(order.getPayAmount());
         cmd.setReason(reason);
-        RefundResult result = channel.refund(cmd);
-        if (!result.isSuccess()) {
+
+        RefundResult result;
+        try {
+            result = channel.refund(cmd);
+        } catch (RuntimeException e) {
+            rollbackRefundStatus(order.getOrderNo(), rollbackStatus, "channel 抛出异常");
+            throw e;
+        }
+        if (result == null || !result.isSuccess()) {
+            rollbackRefundStatus(order.getOrderNo(), rollbackStatus, "channel 返回失败");
             throw new BizException(ErrorCode.REFUND_FAILED);
         }
-        if (payment != null) {
-            paymentRepository.markRefunded(payment.getId());
+        // 走一次独立事务完成本地状态收尾。渠道已成功，此处失败需要人工介入（不再回滚渠道退款）。
+        self.finalizeRefund(order.getOrderNo(), payment != null ? payment.getId() : null);
+    }
+
+    private void rollbackRefundStatus(String orderNo, int rollbackStatus, String cause) {
+        if (rollbackStatus < 0) {
+            return;
         }
-        // 未过期券原路退回 → 0
+        int affected = orderRepository.updateStatusCas(orderNo,
+                OrderStatus.AFTER_SALE.code(), rollbackStatus);
+        if (affected == 0) {
+            log.warn("退款渠道失败但订单状态已流转，回滚跳过 orderNo={}, cause={}", orderNo, cause);
+        }
+    }
+
+    /** 事务 B：本地状态收尾。channel 已成功，此处失败需人工修复；不再回滚。 */
+    @Transactional(rollbackFor = Exception.class)
+    public void finalizeRefund(String orderNo, Long paymentId) {
+        if (paymentId != null) {
+            paymentRepository.markRefunded(paymentId);
+        }
         LocalDateTime now = LocalDateTime.now();
-        for (OrderCoupon oc : orderCouponRepository.findByOrderNo(order.getOrderNo())) {
+        for (OrderCoupon oc : orderCouponRepository.findByOrderNo(orderNo)) {
             userCouponRepository.restoreIfNotExpired(oc.getUserCouponId(), now);
         }
         // 5→6 已退款(终态)
-        orderRepository.updateStatusCas(order.getOrderNo(),
+        orderRepository.updateStatusCas(orderNo,
                 OrderStatus.AFTER_SALE.code(), OrderStatus.REFUNDED.code());
-        eventPublisher.publishEvent(new RefundedEvent(this, order.getOrderNo()));
+        eventPublisher.publishEvent(new RefundedEvent(this, orderNo));
     }
 
-    /** 释放资产(6.4)：回滚库存 + 释放券 3→0 + order→targetStatus。 */
+    /**
+     * 释放资产(6.4)：CAS 先行——待付款(0)→targetStatus 成功后才回滚库存 & 释放券，
+     * 避免与支付回调 / 定时超时任务并发时出现资产双倍释放。
+     */
     private void releaseAssets(Order order, int targetStatus) {
+        int affected = orderRepository.cancelFromUnpaidCas(
+                order.getOrderNo(), targetStatus, LocalDateTime.now());
+        if (affected == 0) {
+            log.info("releaseAssets 跳过：订单状态已流转 orderNo={}", order.getOrderNo());
+            return;
+        }
         for (OrderItem item : orderItemRepository.findByOrderNo(order.getOrderNo())) {
             skuRepository.addStock(item.getSkuId(), item.getQuantity());
         }
         for (OrderCoupon oc : orderCouponRepository.findByOrderNo(order.getOrderNo())) {
             userCouponRepository.releaseLock(oc.getUserCouponId());
         }
-        orderRepository.cancelFromUnpaidCas(order.getOrderNo(), targetStatus, LocalDateTime.now());
     }
 
     // ---- helpers ----

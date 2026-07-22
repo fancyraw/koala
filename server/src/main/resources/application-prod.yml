@@ -21,6 +21,24 @@ spring:
         max-idle: 16
         min-idle: 2
 
+koala:
+  jwt:
+    # prod 必须显式提供密钥，缺失即启动失败，避免使用 dev 默认值
+    secret: ${KOALA_JWT_SECRET}
+  wechat:
+    # prod 强制关闭 mock，任何调用面（登录 / 支付回调 / 退款）在配置缺失时直接拒绝
+    mock-when-unconfigured: false
+  cors:
+    # prod 显式白名单；多个用英文逗号分隔
+    allowed-origins: ${KOALA_CORS_ALLOWED_ORIGINS:https://example.com}
+
+# prod 仅暴露 health / info；metrics 不对外
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
 logging:
   level:
     root: warn

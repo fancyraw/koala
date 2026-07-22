@@ -41,6 +41,6 @@ public class SuperAdminInitializer implements ApplicationRunner {
         admin.setIsSuper(ValidFlag.ENABLED.code());
         admin.setIsValid(ValidFlag.ENABLED.code());
         adminRepository.insert(admin);
-        log.info("已初始化超级管理员账号 openid={}", openid);
+        log.info("已初始化超级管理员账号");
     }
 }

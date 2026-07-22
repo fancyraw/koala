@@ -19,6 +19,11 @@ spring:
         max-idle: 8
         min-idle: 0
 
+koala:
+  wechat:
+    # dev 联调：允许 code 直接当 openid，且允许 mock 支付回调
+    mock-when-unconfigured: true
+
 logging:
   level:
     com.koala: debug

@@ -44,7 +44,7 @@ public class WechatAuthClient {
         JSONObject json = request(MP_URL, params);
         String openid = json.getStr("openid");
         if (!StringUtils.hasText(openid)) {
-            log.warn("微信 jscode2session 无 openid: {}", json);
+            log.warn("微信 jscode2session 无 openid, errcode={}", json.getInt("errcode"));
             throw new BizException(ErrorCode.TOKEN_INVALID, "微信登录失败");
         }
         return openid;
@@ -64,7 +64,7 @@ public class WechatAuthClient {
         JSONObject json = request(OPEN_TOKEN_URL, params);
         String openid = json.getStr("openid");
         if (!StringUtils.hasText(openid)) {
-            log.warn("微信开放平台换 openid 失败: {}", json);
+            log.warn("微信开放平台换 openid 失败, errcode={}", json.getInt("errcode"));
             throw new BizException(ErrorCode.TOKEN_INVALID, "微信扫码登录失败");
         }
         return openid;

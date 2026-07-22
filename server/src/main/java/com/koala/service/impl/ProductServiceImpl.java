@@ -283,8 +283,7 @@ public class ProductServiceImpl implements ProductService {
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
-        return ids.stream().map(categoryRepository::findById)
-                .filter(java.util.Objects::nonNull)
+        return categoryRepository.findByIds(ids).stream()
                 .collect(Collectors.toMap(ProductCategory::getId, ProductCategory::getName));
     }
 

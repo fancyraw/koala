@@ -32,9 +32,11 @@ public class PaymentRepositoryImpl implements PaymentRepository {
 
     @Override
     public int markSuccess(String orderNo, String transactionId, LocalDateTime paidAt) {
+        // uk_transaction 是 UNIQUE(transaction_id)：MySQL 允许多个 NULL 但空串会冲突，统一入库前空串转 null。
+        String normalizedTx = (transactionId == null || transactionId.isEmpty()) ? null : transactionId;
         return paymentMapper.update(null, Wrappers.<Payment>lambdaUpdate()
                 .set(Payment::getStatus, PaymentStatus.SUCCESS.code())
-                .set(Payment::getTransactionId, transactionId)
+                .set(Payment::getTransactionId, normalizedTx)
                 .set(Payment::getPaidAt, paidAt)
                 .eq(Payment::getOrderNo, orderNo)
                 .eq(Payment::getStatus, PaymentStatus.PENDING.code()));

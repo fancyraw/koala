@@ -32,8 +32,6 @@ import java.util.stream.Collectors;
 @Service
 public class PriceServiceImpl implements PriceService {
 
-    private static final BigDecimal MIN_PAY = new BigDecimal("0.01");
-
     private final ProductSkuRepository skuRepository;
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
@@ -142,10 +140,10 @@ public class PriceServiceImpl implements PriceService {
         BigDecimal freeThreshold = configService.getDecimal("shipping", "free_threshold", new BigDecimal("99"));
         BigDecimal shippingFee = productAmount.compareTo(freeThreshold) >= 0 ? BigDecimal.ZERO : baseFee;
 
-        // 4. 实付 = 商品合计 − 券抵扣 + 运费，最低 0.01
+        // 4. 实付 = 商品合计 − 券抵扣 + 运费。允许 0：满券叠免邮时 OrderService 会走零元自动完成路径。
         BigDecimal payAmount = productAmount.subtract(couponDiscount).add(shippingFee);
-        if (payAmount.compareTo(MIN_PAY) < 0) {
-            payAmount = MIN_PAY;
+        if (payAmount.signum() < 0) {
+            payAmount = BigDecimal.ZERO;
         }
 
         PriceResult price = new PriceResult();

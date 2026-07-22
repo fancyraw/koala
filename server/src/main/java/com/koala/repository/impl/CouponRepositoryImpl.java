@@ -52,8 +52,8 @@ public class CouponRepositoryImpl implements CouponRepository {
     }
 
     @Override
-    public void updateById(Coupon coupon) {
-        couponMapper.updateById(coupon);
+    public int updateById(Coupon coupon) {
+        return couponMapper.updateById(coupon);
     }
 
     @Override

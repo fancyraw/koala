@@ -13,8 +13,11 @@ public class WechatProperties {
     private Mp mp = new Mp();
     /** 后台开放平台扫码 */
     private Open open = new Open();
-    /** dev 模式：appid 为空时允许用 code 直接当 openid，便于本地联调 */
-    private boolean mockWhenUnconfigured = true;
+    /**
+     * 允许在配置缺失时走 mock 路径（登录 / 支付回调）。
+     * 默认关闭；仅 application-dev.yml 显式开启，防止误在 prod 生效。
+     */
+    private boolean mockWhenUnconfigured = false;
 
     @Data
     public static class Mp {

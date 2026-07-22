@@ -170,7 +170,6 @@ public class AfterSaleServiceImpl implements AfterSaleService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void audit(AfterSaleAuditRequest req) {
         AfterSale as = afterSaleRepository.findByNo(req.getAfterSaleNo());
         if (as == null) {
@@ -190,10 +189,22 @@ public class AfterSaleServiceImpl implements AfterSaleService {
         }
         // 同意
         if (AfterSaleType.REFUND_ONLY.is(as.getType())) {
-            // 仅退款：审核通过即打款 → 售后单已退款
-            orderService.refundForAfterSale(as.getOrderNo(), as.getReason());
+            // 仅退款：先 CAS 拿到独占权，再调外部渠道；CAS 返回 0 说明有其他线程已在处理。
+            int affected = afterSaleRepository.updateStatusCas(req.getAfterSaleNo(),
+                    AfterSaleStatus.PENDING_AUDIT.code(), AfterSaleStatus.MERCHANT_RECEIVED.code(), remark);
+            if (affected == 0) {
+                throw new BizException(ErrorCode.AFTER_SALE_STATUS_ERROR.getCode(), "售后单状态已变更，请刷新重试");
+            }
+            try {
+                orderService.refundForAfterSale(as.getOrderNo(), as.getReason());
+            } catch (RuntimeException e) {
+                // 渠道失败：CAS 回退到 PENDING_AUDIT，人工重试。
+                afterSaleRepository.updateStatusCas(req.getAfterSaleNo(),
+                        AfterSaleStatus.MERCHANT_RECEIVED.code(), AfterSaleStatus.PENDING_AUDIT.code(), remark);
+                throw e;
+            }
             afterSaleRepository.updateStatusCas(req.getAfterSaleNo(),
-                    AfterSaleStatus.PENDING_AUDIT.code(), AfterSaleStatus.REFUNDED.code(), remark);
+                    AfterSaleStatus.MERCHANT_RECEIVED.code(), AfterSaleStatus.REFUNDED.code(), remark);
         } else {
             // 退货退款：→待寄回，order 保持售后中
             afterSaleRepository.updateStatusCas(req.getAfterSaleNo(),
@@ -202,7 +213,6 @@ public class AfterSaleServiceImpl implements AfterSaleService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void confirmReceive(String afterSaleNo) {
         AfterSale as = afterSaleRepository.findByNo(afterSaleNo);
         if (as == null) {
@@ -214,13 +224,20 @@ public class AfterSaleServiceImpl implements AfterSaleService {
         if (!AfterSaleStatus.BUYER_RETURNED.is(as.getStatus())) {
             throw new BizException(ErrorCode.AFTER_SALE_STATUS_ERROR.getCode(), "仅买家已寄回的售后单可确认收货");
         }
-        // 买家已寄回 → 商家已收货 → 退款 → 已退款
+        // 买家已寄回 → 商家已收货：CAS 拿独占权，防止并发触发两次退款。
         int affected = afterSaleRepository.updateStatusCas(afterSaleNo,
                 AfterSaleStatus.BUYER_RETURNED.code(), AfterSaleStatus.MERCHANT_RECEIVED.code(), null);
         if (affected == 0) {
             throw new BizException(ErrorCode.AFTER_SALE_STATUS_ERROR);
         }
-        orderService.refundForAfterSale(as.getOrderNo(), as.getReason());
+        try {
+            orderService.refundForAfterSale(as.getOrderNo(), as.getReason());
+        } catch (RuntimeException e) {
+            // 渠道失败：售后单退回 BUYER_RETURNED 以便重试。
+            afterSaleRepository.updateStatusCas(afterSaleNo,
+                    AfterSaleStatus.MERCHANT_RECEIVED.code(), AfterSaleStatus.BUYER_RETURNED.code(), null);
+            throw e;
+        }
         afterSaleRepository.updateStatusCas(afterSaleNo,
                 AfterSaleStatus.MERCHANT_RECEIVED.code(), AfterSaleStatus.REFUNDED.code(), null);
     }

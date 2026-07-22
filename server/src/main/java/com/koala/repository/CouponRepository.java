@@ -19,7 +19,8 @@ public interface CouponRepository {
 
     void insert(Coupon coupon);
 
-    void updateById(Coupon coupon);
+    /** 更新，返回受影响行数（带 @Version 时并发失败为 0）。 */
+    int updateById(Coupon coupon);
 
     void deleteById(Long id);
 

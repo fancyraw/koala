@@ -7,6 +7,8 @@ import com.koala.mapper.ProductCategoryMapper;
 import com.koala.repository.ProductCategoryRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Repository
@@ -21,6 +23,14 @@ public class ProductCategoryRepositoryImpl implements ProductCategoryRepository 
     @Override
     public ProductCategory findById(Long id) {
         return categoryMapper.selectById(id);
+    }
+
+    @Override
+    public List<ProductCategory> findByIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return categoryMapper.selectBatchIds(ids);
     }
 
     @Override

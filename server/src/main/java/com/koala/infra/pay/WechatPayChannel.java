@@ -4,6 +4,9 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.koala.common.exception.BizException;
+import com.koala.common.result.ErrorCode;
+import com.koala.config.WechatProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -12,13 +15,26 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 微信支付(JSAPI)渠道。开发环境为 mock 实现：prepay 直接返回可用调起参数，
- * parseNotify 解析 mock 回调 JSON(order_no/transaction_id/pay_amount/success)。
- * 生产接入真实微信支付时替换实现即可，OrderService 不受影响。
+ * 微信支付(JSAPI)渠道。
+ *
+ * <p>当前实现仅提供 mock 路径，供本地/dev 联调；不接入真实 SDK。
+ * 真实接入 TODO：引入 {@code com.github.wechatpay-apiv3:wechatpay-java}，
+ * 用 {@code JsapiServiceExtension} 做 prepay、{@code NotificationParser} 解密+验签、
+ * {@code RefundService} 做退款。所需商户配置（mchid、serialNo、apiV3Key、
+ * 私钥路径、notifyUrl）应通过 {@code koala.pay.wechat.*} 注入。
+ *
+ * <p>安全底线：仅当 {@link WechatProperties#isMockWhenUnconfigured()} 为 true 时才允许 mock；
+ * prod 默认关闭，所有方法直接抛异常，防止 pay-notify 被无签名利用。
  */
 @Slf4j
 @Component
 public class WechatPayChannel implements PaymentChannel {
+
+    private final WechatProperties props;
+
+    public WechatPayChannel(WechatProperties props) {
+        this.props = props;
+    }
 
     @Override
     public String code() {
@@ -27,6 +43,7 @@ public class WechatPayChannel implements PaymentChannel {
 
     @Override
     public PrepayResult prepay(PrepayCommand cmd) {
+        requireMockOrThrow("prepay");
         PrepayResult r = new PrepayResult();
         String prepayId = "mock_prepay_" + IdUtil.fastSimpleUUID();
         r.setPrepayId(prepayId);
@@ -41,6 +58,12 @@ public class WechatPayChannel implements PaymentChannel {
     @Override
     public NotifyResult parseNotify(HttpServletRequest request) {
         NotifyResult result = new NotifyResult();
+        if (!props.isMockWhenUnconfigured()) {
+            // prod 未接入真实验签逻辑前，一律拒绝——阻断「无签名任意置支付成功」的攻击面。
+            log.warn("拒绝支付回调：微信支付未接入，mockWhenUnconfigured=false");
+            result.setSuccess(false);
+            return result;
+        }
         try {
             String body = IoUtil.read(request.getInputStream(), StandardCharsets.UTF_8);
             JSONObject json = JSONUtil.parseObj(body);
@@ -62,9 +85,17 @@ public class WechatPayChannel implements PaymentChannel {
 
     @Override
     public RefundResult refund(RefundCommand cmd) {
+        requireMockOrThrow("refund");
         RefundResult r = new RefundResult();
         r.setSuccess(true);
         r.setRefundId("mock_refund_" + IdUtil.fastSimpleUUID());
         return r;
+    }
+
+    private void requireMockOrThrow(String op) {
+        if (!props.isMockWhenUnconfigured()) {
+            log.warn("微信支付未接入，操作被拒绝: {}", op);
+            throw new BizException(ErrorCode.SYSTEM_ERROR, "微信支付未接入，请先配置商户信息");
+        }
     }
 }

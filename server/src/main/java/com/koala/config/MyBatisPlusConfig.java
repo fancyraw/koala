@@ -10,10 +10,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MyBatisPlusConfig {
 
+    /** 单页最大记录数：任何 controller 传 size &gt; 200 都会被强制截到 200，防止 DoS。 */
+    private static final long PAGE_MAX_LIMIT = 200L;
+
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+        PaginationInnerInterceptor pagination = new PaginationInnerInterceptor(DbType.MYSQL);
+        pagination.setMaxLimit(PAGE_MAX_LIMIT);
+        interceptor.addInnerInterceptor(pagination);
         interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
         return interceptor;
     }

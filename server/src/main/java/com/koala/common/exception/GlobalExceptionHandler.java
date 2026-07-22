@@ -4,13 +4,16 @@ import com.koala.common.result.ErrorCode;
 import com.koala.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import javax.validation.ConstraintViolationException;
 
@@ -49,6 +52,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public Result<Void> handleMissingParam(MissingServletRequestParameterException e) {
         return Result.error(ErrorCode.PARAM_MISSING, "缺少参数: " + e.getParameterName());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public Result<Void> handleUnreadable(HttpMessageNotReadableException e) {
+        return Result.error(ErrorCode.PARAM_ERROR, "请求体格式错误");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public Result<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        return Result.error(ErrorCode.PARAM_ERROR, "不支持的请求方法: " + e.getMethod());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Result<Void> handleMaxUpload(MaxUploadSizeExceededException e) {
+        return Result.error(ErrorCode.PARAM_ERROR, "上传文件超过大小限制");
     }
 
     @ExceptionHandler(Exception.class)
