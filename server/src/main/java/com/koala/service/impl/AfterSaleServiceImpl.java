@@ -22,7 +22,7 @@ import com.koala.repository.AfterSaleRepository;
 import com.koala.repository.OrderRepository;
 import com.koala.repository.UserRepository;
 import com.koala.service.AfterSaleService;
-import com.koala.service.OrderService;
+import com.koala.service.OrderRefundService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,14 +39,14 @@ public class AfterSaleServiceImpl implements AfterSaleService {
     private final AfterSaleRepository afterSaleRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
-    private final OrderService orderService;
+    private final OrderRefundService orderRefundService;
 
     public AfterSaleServiceImpl(AfterSaleRepository afterSaleRepository, OrderRepository orderRepository,
-                                UserRepository userRepository, OrderService orderService) {
+                                UserRepository userRepository, OrderRefundService orderRefundService) {
         this.afterSaleRepository = afterSaleRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
-        this.orderService = orderService;
+        this.orderRefundService = orderRefundService;
     }
 
     @Override
@@ -194,7 +194,7 @@ public class AfterSaleServiceImpl implements AfterSaleService {
                 throw new BizException(ErrorCode.AFTER_SALE_STATUS_ERROR.getCode(), "售后单状态已变更，请刷新重试");
             }
             try {
-                orderService.refundForAfterSale(as.getOrderNo(), as.getReason());
+                orderRefundService.refundForAfterSale(as.getOrderNo(), as.getReason());
             } catch (RuntimeException e) {
                 // 渠道失败：CAS 回退到 PENDING_AUDIT，人工重试。
                 afterSaleRepository.updateStatusCas(req.getAfterSaleNo(),
@@ -229,7 +229,7 @@ public class AfterSaleServiceImpl implements AfterSaleService {
             throw new BizException(ErrorCode.AFTER_SALE_STATUS_ERROR);
         }
         try {
-            orderService.refundForAfterSale(as.getOrderNo(), as.getReason());
+            orderRefundService.refundForAfterSale(as.getOrderNo(), as.getReason());
         } catch (RuntimeException e) {
             // 渠道失败：售后单退回 BUYER_RETURNED 以便重试。
             afterSaleRepository.updateStatusCas(afterSaleNo,

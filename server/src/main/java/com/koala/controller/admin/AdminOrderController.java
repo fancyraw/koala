@@ -5,7 +5,9 @@ import com.koala.common.result.Result;
 import com.koala.dto.order.AdminOrderView;
 import com.koala.dto.order.OrderRefundRequest;
 import com.koala.dto.order.OrderShipRequest;
-import com.koala.service.OrderService;
+import com.koala.service.OrderQueryService;
+import com.koala.service.OrderRefundService;
+import com.koala.service.OrderShipService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
@@ -26,10 +28,15 @@ import javax.validation.constraints.Min;
 @RequestMapping("/admin/orders")
 public class AdminOrderController {
 
-    private final OrderService orderService;
+    private final OrderQueryService queryService;
+    private final OrderShipService shipService;
+    private final OrderRefundService refundService;
 
-    public AdminOrderController(OrderService orderService) {
-        this.orderService = orderService;
+    public AdminOrderController(OrderQueryService queryService, OrderShipService shipService,
+                                OrderRefundService refundService) {
+        this.queryService = queryService;
+        this.shipService = shipService;
+        this.refundService = refundService;
     }
 
     @Operation(summary = "订单列表(订单号/买家昵称/收货人搜索+状态+分页)")
@@ -39,26 +46,26 @@ public class AdminOrderController {
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "page 不能小于 1") long page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "size 不能小于 1") @Max(value = 200, message = "size 不能大于 200") long size) {
-        return Result.success(orderService.adminList(keyword, status, page, size));
+        return Result.success(queryService.adminList(keyword, status, page, size));
     }
 
     @Operation(summary = "订单详情")
     @GetMapping("/detail")
     public Result<AdminOrderView> detail(@RequestParam String no) {
-        return Result.success(orderService.adminDetail(no));
+        return Result.success(queryService.adminDetail(no));
     }
 
     @Operation(summary = "发货")
     @PostMapping("/ship")
     public Result<Void> ship(@Valid @RequestBody OrderShipRequest req) {
-        orderService.ship(req);
+        shipService.ship(req);
         return Result.success();
     }
 
     @Operation(summary = "已完成订单手动发起退款")
     @PostMapping("/refund")
     public Result<Void> refund(@Valid @RequestBody OrderRefundRequest req) {
-        orderService.adminRefund(req);
+        refundService.adminRefund(req);
         return Result.success();
     }
 }

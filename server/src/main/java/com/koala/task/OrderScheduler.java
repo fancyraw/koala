@@ -1,7 +1,7 @@
 package com.koala.task;
 
 import com.koala.service.CouponService;
-import com.koala.service.OrderService;
+import com.koala.service.OrderLifecycleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -14,11 +14,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class OrderScheduler {
 
-    private final OrderService orderService;
+    private final OrderLifecycleService lifecycleService;
     private final CouponService couponService;
 
-    public OrderScheduler(OrderService orderService, CouponService couponService) {
-        this.orderService = orderService;
+    public OrderScheduler(OrderLifecycleService lifecycleService, CouponService couponService) {
+        this.lifecycleService = lifecycleService;
         this.couponService = couponService;
     }
 
@@ -26,7 +26,7 @@ public class OrderScheduler {
     @Scheduled(cron = "0 * * * * ?")
     public void cancelTimeoutOrders() {
         try {
-            int n = orderService.autoCancelTimeout();
+            int n = lifecycleService.autoCancelTimeout();
             if (n > 0) {
                 log.info("超时取消订单 {} 单", n);
             }
@@ -39,7 +39,7 @@ public class OrderScheduler {
     @Scheduled(cron = "0 10 0 * * ?")
     public void autoConfirmOrders() {
         try {
-            int n = orderService.autoConfirmReceived();
+            int n = lifecycleService.autoConfirmReceived();
             if (n > 0) {
                 log.info("自动确认收货 {} 单", n);
             }
