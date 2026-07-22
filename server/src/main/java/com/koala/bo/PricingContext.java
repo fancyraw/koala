@@ -1,4 +1,4 @@
-package com.koala.service.pricing;
+package com.koala.bo;
 
 import com.koala.dto.order.OrderItemView;
 import com.koala.dto.order.OrderPreviewView;

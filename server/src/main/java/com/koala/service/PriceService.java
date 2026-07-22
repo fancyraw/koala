@@ -7,8 +7,8 @@ import com.koala.converter.CouponConverter;
 import com.koala.dto.order.OrderItemRequest;
 import com.koala.dto.order.OrderItemView;
 import com.koala.dto.order.OrderPreviewView;
-import com.koala.service.pricing.PriceResult;
-import com.koala.service.pricing.PricingContext;
+import com.koala.bo.PriceResult;
+import com.koala.bo.PricingContext;
 import com.koala.entity.Coupon;
 import com.koala.entity.Product;
 import com.koala.entity.ProductSku;
@@ -19,7 +19,6 @@ import com.koala.repository.CouponRepository;
 import com.koala.repository.ProductRepository;
 import com.koala.repository.ProductSkuRepository;
 import com.koala.repository.UserCouponRepository;
-import com.koala.service.ConfigService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

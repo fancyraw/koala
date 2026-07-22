@@ -1,4 +1,4 @@
-package com.koala.service;
+package com.koala.service.order;
 
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;

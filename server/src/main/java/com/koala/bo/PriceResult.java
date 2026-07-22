@@ -1,4 +1,4 @@
-package com.koala.service.pricing;
+package com.koala.bo;
 
 import lombok.Data;
 

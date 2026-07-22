@@ -1,7 +1,7 @@
 package com.koala.task;
 
 import com.koala.service.CouponService;
-import com.koala.service.OrderLifecycleService;
+import com.koala.service.order.OrderLifecycleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
