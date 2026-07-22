@@ -20,6 +20,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,6 +39,7 @@ public class CouponService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final RedissonClient redisson;
+    private final Clock clock;
 
     /** 自注入代理：私有事务方法需走代理，否则 @Transactional 失效。 */
     @Autowired
@@ -45,14 +47,15 @@ public class CouponService {
     private CouponService self;
 
     public CouponService(CouponRepository couponRepository, UserCouponRepository userCouponRepository,
-                             RedissonClient redisson) {
+                             RedissonClient redisson, Clock clock) {
         this.couponRepository = couponRepository;
         this.userCouponRepository = userCouponRepository;
         this.redisson = redisson;
+        this.clock = clock;
     }
 
     public GrantResultView autoGrant(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<Coupon> candidates = listGrantable(now);
 
         Set<Long> owned = userCouponRepository.ownedCouponIds(userId);
@@ -78,7 +81,7 @@ public class CouponService {
         if (rows.isEmpty()) {
             return new ArrayList<>();
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         java.util.Map<Long, Coupon> couponMap = couponRepository.findByIds(
                         rows.stream().map(UserCoupon::getCouponId).collect(Collectors.toSet()))
                 .stream().collect(Collectors.toMap(Coupon::getId, c -> c));
@@ -94,7 +97,7 @@ public class CouponService {
     }
 
     public int expireOverdue() {
-        return userCouponRepository.expireOverdue(LocalDateTime.now());
+        return userCouponRepository.expireOverdue(LocalDateTime.now(clock));
     }
 
     /** 候选券模板：正常且未发完；固定区间还须在窗内。 */

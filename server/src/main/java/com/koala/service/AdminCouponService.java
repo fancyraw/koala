@@ -20,6 +20,7 @@ import com.koala.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,19 +35,21 @@ public class AdminCouponService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     public AdminCouponService(CouponRepository couponRepository, UserCouponRepository userCouponRepository,
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository, Clock clock) {
         this.couponRepository = couponRepository;
         this.userCouponRepository = userCouponRepository;
         this.userRepository = userRepository;
+        this.clock = clock;
     }
 
     /** 券模板总量兜底：state 是派生态无法直接翻 SQL，内存过滤合理但需限制表大小防被撑爆。 */
     private static final int LIST_HARD_LIMIT = 5000;
 
     public PageResult<AdminCouponView> list(String state, long page, long size) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<Coupon> raw = couponRepository.findAll();
         if (raw.size() >= LIST_HARD_LIMIT) {
             throw new BizException(ErrorCode.SYSTEM_ERROR.getCode(),
@@ -66,7 +69,7 @@ public class AdminCouponService {
     }
 
     public AdminCouponView detail(Long id) {
-        return CouponConverter.toAdminView(requireCoupon(id), LocalDateTime.now());
+        return CouponConverter.toAdminView(requireCoupon(id), LocalDateTime.now(clock));
     }
 
     public Long save(CouponSaveRequest req, Long adminId) {
@@ -123,7 +126,7 @@ public class AdminCouponService {
 
     public List<GrantDetailView> grants(Long couponId) {
         requireCoupon(couponId);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<UserCoupon> rows = userCouponRepository.findByCoupon(couponId);
         if (rows.isEmpty()) {
             return new ArrayList<>();

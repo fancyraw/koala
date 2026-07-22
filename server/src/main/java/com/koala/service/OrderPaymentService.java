@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /**
@@ -45,6 +46,7 @@ public class OrderPaymentService {
     private final ConfigService configService;
     private final PaymentChannelFactory paymentChannelFactory;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     /** 自注入代理：验签 -> 事务方法 handlePaid 需走代理。 */
     @Autowired
@@ -55,7 +57,7 @@ public class OrderPaymentService {
                                PaymentRepository paymentRepository, CouponRepository couponRepository,
                                UserCouponRepository userCouponRepository, OrderQueryService orderQueryService,
                                ConfigService configService, PaymentChannelFactory paymentChannelFactory,
-                               ApplicationEventPublisher eventPublisher) {
+                               ApplicationEventPublisher eventPublisher, Clock clock) {
         this.orderRepository = orderRepository;
         this.orderCouponRepository = orderCouponRepository;
         this.paymentRepository = paymentRepository;
@@ -65,6 +67,7 @@ public class OrderPaymentService {
         this.configService = configService;
         this.paymentChannelFactory = paymentChannelFactory;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     public PrepayResult pay(Long userId, String orderNo) {
@@ -72,7 +75,7 @@ public class OrderPaymentService {
         if (!OrderStatus.WAIT_PAY.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单不可支付");
         }
-        if (order.getExpireAt() != null && order.getExpireAt().isBefore(LocalDateTime.now())) {
+        if (order.getExpireAt() != null && order.getExpireAt().isBefore(LocalDateTime.now(clock))) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "订单已超时");
         }
         // 零元订单在提交事务里已直接置为 WAIT_SHIP，正常不会到这里；保底再拒绝一次。
@@ -110,7 +113,7 @@ public class OrderPaymentService {
         if (!OrderStatus.WAIT_PAY.is(order.getStatus())) {
             return true;
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         // order 0→1 CAS
         if (orderRepository.markPaidCas(orderNo, now) == 0) {
             // 与超时取消 race：重新读订单，若已被取消而钱到账则登记待退款，事后由 admin/售后触发实际退款。

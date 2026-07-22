@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -18,10 +19,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConfigService {
 
     private final SysConfigRepository configRepository;
+    private final Clock clock;
     private final Map<String, String> cache = new ConcurrentHashMap<>();
 
-    public ConfigService(SysConfigRepository configRepository) {
+    public ConfigService(SysConfigRepository configRepository, Clock clock) {
         this.configRepository = configRepository;
+        this.clock = clock;
     }
 
     @PostConstruct
@@ -89,7 +92,7 @@ public class ConfigService {
         } else {
             existing.setConfigValue(value);
             existing.setUpdatedBy(adminId != null ? adminId : 0L);
-            existing.setUpdatedAt(LocalDateTime.now());
+            existing.setUpdatedAt(LocalDateTime.now(clock));
             configRepository.updateById(existing);
         }
         cache.put(cacheKey(group, key), value);

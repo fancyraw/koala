@@ -8,6 +8,7 @@ import com.koala.enums.OrderStatus;
 import com.koala.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /** 订单发货：仅待发货订单可置为待收货。 */
@@ -15,9 +16,11 @@ import java.time.LocalDateTime;
 public class OrderShipService {
 
     private final OrderRepository orderRepository;
+    private final Clock clock;
 
-    public OrderShipService(OrderRepository orderRepository) {
+    public OrderShipService(OrderRepository orderRepository, Clock clock) {
         this.orderRepository = orderRepository;
+        this.clock = clock;
     }
 
     public void ship(OrderShipRequest req) {
@@ -29,7 +32,7 @@ public class OrderShipService {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅待发货订单可发货");
         }
         if (orderRepository.markShippedCas(req.getNo(), req.getLogisticsCompany(),
-                req.getLogisticsNo(), LocalDateTime.now()) == 0) {
+                req.getLogisticsNo(), LocalDateTime.now(clock)) == 0) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR);
         }
     }

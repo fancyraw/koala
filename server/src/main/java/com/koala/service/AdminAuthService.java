@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
@@ -39,14 +40,17 @@ public class AdminAuthService {
     private final WechatProperties wechatProps;
     private final AdminRepository adminRepository;
     private final JwtUtil jwtUtil;
+    private final Clock clock;
 
     public AdminAuthService(StringRedisTemplate redis, WechatAuthClient wechatAuthClient,
-                                WechatProperties wechatProps, AdminRepository adminRepository, JwtUtil jwtUtil) {
+                                WechatProperties wechatProps, AdminRepository adminRepository, JwtUtil jwtUtil,
+                                Clock clock) {
         this.redis = redis;
         this.wechatAuthClient = wechatAuthClient;
         this.wechatProps = wechatProps;
         this.adminRepository = adminRepository;
         this.jwtUtil = jwtUtil;
+        this.clock = clock;
     }
 
     public QrcodeResponse createQrcode() {
@@ -82,7 +86,7 @@ public class AdminAuthService {
             return;
         }
 
-        admin.setLastLoginAt(LocalDateTime.now());
+        admin.setLastLoginAt(LocalDateTime.now(clock));
         adminRepository.updateById(admin);
 
         String token = jwtUtil.issueAdminToken(admin.getId(), ValidFlag.ENABLED.is(admin.getIsSuper()));

@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /**
@@ -44,6 +45,7 @@ public class OrderRefundService {
     private final ConfigService configService;
     private final PaymentChannelFactory paymentChannelFactory;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     /** 自注入代理：channel 后的 finalizeRefund 需事务，走代理。 */
     @Autowired
@@ -53,7 +55,7 @@ public class OrderRefundService {
     public OrderRefundService(OrderRepository orderRepository, OrderCouponRepository orderCouponRepository,
                               PaymentRepository paymentRepository, UserCouponRepository userCouponRepository,
                               ConfigService configService, PaymentChannelFactory paymentChannelFactory,
-                              ApplicationEventPublisher eventPublisher) {
+                              ApplicationEventPublisher eventPublisher, Clock clock) {
         this.orderRepository = orderRepository;
         this.orderCouponRepository = orderCouponRepository;
         this.paymentRepository = paymentRepository;
@@ -61,6 +63,7 @@ public class OrderRefundService {
         this.configService = configService;
         this.paymentChannelFactory = paymentChannelFactory;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     public void adminRefund(OrderRefundRequest req) {
@@ -144,7 +147,7 @@ public class OrderRefundService {
         if (paymentId != null) {
             paymentRepository.markRefunded(paymentId);
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         for (OrderCoupon oc : orderCouponRepository.findByOrderNo(orderNo)) {
             userCouponRepository.restoreIfNotExpired(oc.getUserCouponId(), now);
         }

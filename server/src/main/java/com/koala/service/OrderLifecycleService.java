@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,6 +37,7 @@ public class OrderLifecycleService {
     private final UserCouponRepository userCouponRepository;
     private final OrderQueryService orderQueryService;
     private final ConfigService configService;
+    private final Clock clock;
 
     /** 自注入代理：autoCancelTimeout 循环内调用事务方法需走代理。 */
     @Autowired
@@ -45,7 +47,7 @@ public class OrderLifecycleService {
     public OrderLifecycleService(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
                                  OrderCouponRepository orderCouponRepository, ProductSkuRepository skuRepository,
                                  UserCouponRepository userCouponRepository, OrderQueryService orderQueryService,
-                                 ConfigService configService) {
+                                 ConfigService configService, Clock clock) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderCouponRepository = orderCouponRepository;
@@ -53,6 +55,7 @@ public class OrderLifecycleService {
         this.userCouponRepository = userCouponRepository;
         this.orderQueryService = orderQueryService;
         this.configService = configService;
+        this.clock = clock;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -72,7 +75,7 @@ public class OrderLifecycleService {
         if (!OrderStatus.WAIT_RECEIVE.is(order.getStatus())) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "仅待收货订单可确认收货");
         }
-        if (orderRepository.markCompletedCas(orderNo, LocalDateTime.now()) == 0) {
+        if (orderRepository.markCompletedCas(orderNo, LocalDateTime.now(clock)) == 0) {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR);
         }
     }
@@ -87,7 +90,7 @@ public class OrderLifecycleService {
     }
 
     public int autoCancelTimeout() {
-        List<Order> timedOut = orderRepository.findTimedOutUnpaid(LocalDateTime.now());
+        List<Order> timedOut = orderRepository.findTimedOutUnpaid(LocalDateTime.now(clock));
         int count = 0;
         for (Order order : timedOut) {
             try {
@@ -112,10 +115,10 @@ public class OrderLifecycleService {
 
     public int autoConfirmReceived() {
         int days = configService.getInt(ConfigKeys.Order.GROUP, ConfigKeys.Order.AUTO_CONFIRM_DAYS, 7);
-        LocalDateTime deadline = LocalDateTime.now().minusDays(days);
+        LocalDateTime deadline = LocalDateTime.now(clock).minusDays(days);
         List<Order> due = orderRepository.findAutoConfirmDue(deadline);
         int count = 0;
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         for (Order order : due) {
             if (orderRepository.markCompletedCas(order.getOrderNo(), now) > 0) {
                 count++;
@@ -130,7 +133,7 @@ public class OrderLifecycleService {
      */
     private void releaseAssets(Order order, int targetStatus) {
         int affected = orderRepository.cancelFromUnpaidCas(
-                order.getOrderNo(), targetStatus, LocalDateTime.now());
+                order.getOrderNo(), targetStatus, LocalDateTime.now(clock));
         if (affected == 0) {
             log.info("releaseAssets 跳过：订单状态已流转 orderNo={}", order.getOrderNo());
             return;

@@ -23,6 +23,7 @@ import com.koala.service.ConfigService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,19 +39,21 @@ public class PriceService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final ConfigService configService;
+    private final Clock clock;
 
     public PriceService(ProductSkuRepository skuRepository, ProductRepository productRepository,
                             CouponRepository couponRepository, UserCouponRepository userCouponRepository,
-                            ConfigService configService) {
+                            ConfigService configService, Clock clock) {
         this.skuRepository = skuRepository;
         this.productRepository = productRepository;
         this.couponRepository = couponRepository;
         this.userCouponRepository = userCouponRepository;
         this.configService = configService;
+        this.clock = clock;
     }
 
     public PricingContext calculate(Long userId, List<OrderItemRequest> items, boolean withUpsell) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // 1. 解析商品项 + 商品合计
         Set<Long> skuIds = items.stream().map(OrderItemRequest::getSkuId).collect(Collectors.toSet());

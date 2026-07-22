@@ -43,6 +43,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
@@ -73,6 +74,7 @@ public class OrderSubmitService {
     private final RedissonClient redisson;
     private final StringRedisTemplate redis;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     /** 自注入代理：锁内调用事务方法需走代理，否则 @Transactional 失效。 */
     @Autowired
@@ -85,7 +87,7 @@ public class OrderSubmitService {
                               CouponRepository couponRepository, UserCouponRepository userCouponRepository,
                               UserAddressRepository addressRepository, PriceService priceService,
                               ConfigService configService, RedissonClient redisson,
-                              StringRedisTemplate redis, ApplicationEventPublisher eventPublisher) {
+                              StringRedisTemplate redis, ApplicationEventPublisher eventPublisher, Clock clock) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderCouponRepository = orderCouponRepository;
@@ -100,6 +102,7 @@ public class OrderSubmitService {
         this.redisson = redisson;
         this.redis = redis;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     public OrderSubmitView submit(Long userId, OrderSubmitRequest req) {
@@ -156,7 +159,7 @@ public class OrderSubmitService {
         }
 
         // d/f. 建订单
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         int timeoutMinutes = configService.getInt(ConfigKeys.Order.GROUP, ConfigKeys.Order.PAY_TIMEOUT_MINUTES, 30);
         String orderNo = SerialNoGenerator.next(SerialNoGenerator.ORDER_PREFIX);
 
