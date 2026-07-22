@@ -1,6 +1,7 @@
 package com.koala.service.impl;
 
 import cn.hutool.json.JSONUtil;
+import com.koala.common.constant.RedisKeys;
 import com.koala.dto.dashboard.DashboardView;
 import com.koala.dto.dashboard.HotProduct;
 import com.koala.dto.dashboard.Pending;
@@ -39,7 +40,6 @@ import java.util.stream.Collectors;
 @Service
 public class DashboardServiceImpl implements DashboardService {
 
-    private static final String CACHE_KEY = "admin:dashboard:";
     private static final long CACHE_TTL_SECONDS = 60;
     private static final int HOT_LIMIT = 5;
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -62,7 +62,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public DashboardView overview(int rangeDays) {
-        String cacheKey = CACHE_KEY + rangeDays;
+        String cacheKey = RedisKeys.ADMIN_DASHBOARD + rangeDays;
         String cached = redis.opsForValue().get(cacheKey);
         if (cached != null) {
             return JSONUtil.toBean(cached, DashboardView.class);

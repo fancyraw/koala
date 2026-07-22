@@ -1,5 +1,6 @@
 package com.koala.service.impl;
 
+import com.koala.common.constant.RedisKeys;
 import com.koala.dto.coupon.GrantResultView;
 import com.koala.dto.coupon.UserCouponView;
 import com.koala.entity.Coupon;
@@ -35,7 +36,6 @@ import java.util.stream.Collectors;
 public class CouponServiceImpl implements CouponService {
 
     private static final int NEAR_EXPIRY_DAYS = 3;
-    private static final String LOCK_PREFIX = "lock:coupon:grant:";
 
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
@@ -115,7 +115,7 @@ public class CouponServiceImpl implements CouponService {
 
     /** 单券下发：用户级分布式锁 + 事务包裹 CAS+插入，保证发行计数与用户券行原子提交。 */
     private UserCoupon grantOne(Long userId, Long couponId, LocalDateTime now) {
-        RLock lock = redisson.getLock(LOCK_PREFIX + userId + ":" + couponId);
+        RLock lock = redisson.getLock(RedisKeys.LOCK_COUPON_GRANT + userId + ":" + couponId);
         boolean locked = false;
         try {
             locked = lock.tryLock(2, 5, TimeUnit.SECONDS);

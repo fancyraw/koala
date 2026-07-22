@@ -4,6 +4,7 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.koala.common.constant.PaymentChannels;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.config.WechatProperties;
@@ -38,7 +39,7 @@ public class WechatPayChannel implements PaymentChannel {
 
     @Override
     public String code() {
-        return "wechat";
+        return PaymentChannels.WECHAT;
     }
 
     @Override

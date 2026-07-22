@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.koala.common.auth.JwtUtil;
+import com.koala.common.constant.RedisKeys;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.config.WechatProperties;
@@ -32,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class AdminAuthServiceImpl implements AdminAuthService {
 
-    private static final String SESSION_KEY = "admin:login:session:";
     private static final long TTL_SECONDS = 300;
 
     private final StringRedisTemplate redis;
@@ -66,7 +66,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         String status = session.getStr("status");
         if (QrcodeCheckResponse.CONFIRMED.equals(status)) {
             LoginResponse login = JSONUtil.toBean(session.getJSONObject("login"), LoginResponse.class);
-            redis.delete(SESSION_KEY + state);
+            redis.delete(RedisKeys.ADMIN_LOGIN_SESSION + state);
             return QrcodeCheckResponse.confirmed(login);
         }
         return QrcodeCheckResponse.of(status);
@@ -122,11 +122,11 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         if (login != null) {
             json.set("login", login);
         }
-        redis.opsForValue().set(SESSION_KEY + state, json.toString(), TTL_SECONDS, TimeUnit.SECONDS);
+        redis.opsForValue().set(RedisKeys.ADMIN_LOGIN_SESSION + state, json.toString(), TTL_SECONDS, TimeUnit.SECONDS);
     }
 
     private JSONObject readSession(String state) {
-        String raw = redis.opsForValue().get(SESSION_KEY + state);
+        String raw = redis.opsForValue().get(RedisKeys.ADMIN_LOGIN_SESSION + state);
         return StringUtils.hasText(raw) ? JSONUtil.parseObj(raw) : null;
     }
 }

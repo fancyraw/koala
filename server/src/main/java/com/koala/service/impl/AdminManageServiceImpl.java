@@ -1,6 +1,7 @@
 package com.koala.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.koala.common.constant.RedisKeys;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.config.WechatProperties;
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
 @Service
 public class AdminManageServiceImpl implements AdminManageService {
 
-    private static final String INVITE_KEY = "admin:invite:token:";
     private static final long TTL_SECONDS = 30 * 60;
 
     private final StringRedisTemplate redis;
@@ -47,14 +47,14 @@ public class AdminManageServiceImpl implements AdminManageService {
     @Override
     public InviteResponse invite() {
         String token = IdUtil.fastSimpleUUID();
-        redis.opsForValue().set(INVITE_KEY + token, "1", TTL_SECONDS, TimeUnit.SECONDS);
+        redis.opsForValue().set(RedisKeys.ADMIN_INVITE_TOKEN + token, "1", TTL_SECONDS, TimeUnit.SECONDS);
         return new InviteResponse(token, buildInviteUrl(token), TTL_SECONDS);
     }
 
     @Override
     public void accept(AcceptInviteRequest req) {
         // 一次性消费 token：delete 返回 true 表示存在且本次抢到，转发重放只有一次成功
-        Boolean consumed = redis.delete(INVITE_KEY + req.getInviteToken());
+        Boolean consumed = redis.delete(RedisKeys.ADMIN_INVITE_TOKEN + req.getInviteToken());
         if (!Boolean.TRUE.equals(consumed)) {
             throw new BizException(ErrorCode.TOKEN_INVALID, "邀请链接已失效或已被使用");
         }

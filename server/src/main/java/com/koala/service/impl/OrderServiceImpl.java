@@ -1,10 +1,12 @@
 package com.koala.service.impl;
 
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.koala.common.constant.ConfigKeys;
+import com.koala.common.constant.PaymentChannels;
+import com.koala.common.constant.RedisKeys;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
+import com.koala.common.util.SerialNoGenerator;
 import com.koala.common.result.PageResult;
 import com.koala.dto.order.AdminOrderView;
 import com.koala.dto.order.OrderItemRequest;
@@ -66,7 +68,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,8 +78,6 @@ import java.util.stream.Collectors;
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    private static final String SUBMIT_TOKEN_PREFIX = "order:submit:";
-    private static final String LOCK_PREFIX = "lock:order:submit:";
     private static final int SUBMIT_TOKEN_TTL_MINUTES = 30;
 
     private final OrderRepository orderRepository;
@@ -157,7 +156,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderSubmitView submit(Long userId, OrderSubmitRequest req) {
         // a. 幂等：submitToken SETNX
         Boolean firstSubmit = redis.opsForValue().setIfAbsent(
-                SUBMIT_TOKEN_PREFIX + req.getSubmitToken(), "1",
+                RedisKeys.ORDER_SUBMIT_TOKEN + req.getSubmitToken(), "1",
                 SUBMIT_TOKEN_TTL_MINUTES, TimeUnit.MINUTES);
         if (!Boolean.TRUE.equals(firstSubmit)) {
             throw new BizException(ErrorCode.DUPLICATE_SUBMIT);
@@ -168,7 +167,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.ADDRESS_INVALID);
         }
 
-        RLock lock = redisson.getLock(LOCK_PREFIX + userId);
+        RLock lock = redisson.getLock(RedisKeys.LOCK_ORDER_SUBMIT + userId);
         boolean locked = false;
         try {
             // leaseTime < 0：交给 Redisson watchdog 每 10s 续期，避免长事务（多商品扣库存 + 券锁定 + 多次 insert）
@@ -209,7 +208,7 @@ public class OrderServiceImpl implements OrderService {
 
         // d/f. 建订单
         LocalDateTime now = LocalDateTime.now();
-        int timeoutMinutes = configService.getInt("order", "pay_timeout_minutes", 30);
+        int timeoutMinutes = configService.getInt(ConfigKeys.Order.GROUP, ConfigKeys.Order.PAY_TIMEOUT_MINUTES, 30);
         String orderNo = genOrderNo();
 
         Order order = new Order();
@@ -262,7 +261,7 @@ public class OrderServiceImpl implements OrderService {
         // 建 payment(待支付)
         Payment payment = new Payment();
         payment.setOrderNo(orderNo);
-        payment.setChannel(configService.get("payment", "active_channel", "wechat"));
+        payment.setChannel(configService.get(ConfigKeys.Payment.GROUP, ConfigKeys.Payment.ACTIVE_CHANNEL, PaymentChannels.WECHAT));
         payment.setPayAmount(price.getPayAmount());
         payment.setStatus(PaymentStatus.PENDING.code());
         paymentRepository.insert(payment);
@@ -300,7 +299,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.ORDER_STATUS_ERROR.getCode(), "零元订单无需支付");
         }
         PaymentChannel channel = paymentChannelFactory.get(
-                configService.get("payment", "active_channel", "wechat"));
+                configService.get(ConfigKeys.Payment.GROUP, ConfigKeys.Payment.ACTIVE_CHANNEL, PaymentChannels.WECHAT));
         PrepayCommand cmd = new PrepayCommand();
         cmd.setOrderNo(orderNo);
         cmd.setPayAmount(order.getPayAmount());
@@ -311,7 +310,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public boolean payNotify(HttpServletRequest request) {
         PaymentChannel channel = paymentChannelFactory.get(
-                configService.get("payment", "active_channel", "wechat"));
+                configService.get(ConfigKeys.Payment.GROUP, ConfigKeys.Payment.ACTIVE_CHANNEL, PaymentChannels.WECHAT));
         NotifyResult notify = channel.parseNotify(request);
         if (notify == null || !notify.isSuccess() || notify.getOrderNo() == null) {
             log.warn("支付回调验签失败或未成功: {}", notify);
@@ -523,7 +522,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public int autoConfirmReceived() {
-        int days = configService.getInt("order", "auto_confirm_days", 7);
+        int days = configService.getInt(ConfigKeys.Order.GROUP, ConfigKeys.Order.AUTO_CONFIRM_DAYS, 7);
         LocalDateTime deadline = LocalDateTime.now().minusDays(days);
         List<Order> due = orderRepository.findAutoConfirmDue(deadline);
         int count = 0;
@@ -546,7 +545,7 @@ public class OrderServiceImpl implements OrderService {
         Payment payment = paymentRepository.findByOrderNoAndStatus(
                 order.getOrderNo(), PaymentStatus.SUCCESS.code());
         PaymentChannel channel = paymentChannelFactory.get(
-                payment != null ? payment.getChannel() : configService.get("payment", "active_channel", "wechat"));
+                payment != null ? payment.getChannel() : configService.get(ConfigKeys.Payment.GROUP, ConfigKeys.Payment.ACTIVE_CHANNEL, PaymentChannels.WECHAT));
         RefundCommand cmd = new RefundCommand();
         cmd.setOrderNo(order.getOrderNo());
         cmd.setTransactionId(payment != null ? payment.getTransactionId() : null);
@@ -716,6 +715,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String genOrderNo() {
-        return DateUtil.format(new Date(), "yyyyMMddHHmmss") + RandomUtil.randomNumbers(6);
+        return SerialNoGenerator.next(SerialNoGenerator.ORDER_PREFIX);
     }
 }

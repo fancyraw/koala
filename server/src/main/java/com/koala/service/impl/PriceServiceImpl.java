@@ -1,5 +1,6 @@
 package com.koala.service.impl;
 
+import com.koala.common.constant.ConfigKeys;
 import com.koala.common.exception.BizException;
 import com.koala.common.result.ErrorCode;
 import com.koala.dto.order.OrderItemRequest;
@@ -136,8 +137,8 @@ public class PriceServiceImpl implements PriceService {
         BigDecimal couponDiscount = rawDiscount.min(productAmount);
 
         // 3. 运费：包邮门槛以商品合计判断，运费不参与券抵扣
-        BigDecimal baseFee = configService.getDecimal("shipping", "base_fee", new BigDecimal("8"));
-        BigDecimal freeThreshold = configService.getDecimal("shipping", "free_threshold", new BigDecimal("99"));
+        BigDecimal baseFee = configService.getDecimal(ConfigKeys.Shipping.GROUP, ConfigKeys.Shipping.BASE_FEE, new BigDecimal("8"));
+        BigDecimal freeThreshold = configService.getDecimal(ConfigKeys.Shipping.GROUP, ConfigKeys.Shipping.FREE_THRESHOLD, new BigDecimal("99"));
         BigDecimal shippingFee = productAmount.compareTo(freeThreshold) >= 0 ? BigDecimal.ZERO : baseFee;
 
         // 4. 实付 = 商品合计 − 券抵扣 + 运费。允许 0：满券叠免邮时 OrderService 会走零元自动完成路径。

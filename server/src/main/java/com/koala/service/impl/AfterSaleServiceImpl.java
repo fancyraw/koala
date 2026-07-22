@@ -1,11 +1,10 @@
 package com.koala.service.impl;
 
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.koala.common.exception.BizException;
+import com.koala.common.util.SerialNoGenerator;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.PageResult;
 import com.koala.dto.aftersale.AdminAfterSaleView;
@@ -29,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -305,6 +303,6 @@ public class AfterSaleServiceImpl implements AfterSaleService {
     }
 
     private String genAfterSaleNo() {
-        return "AS" + DateUtil.format(new Date(), "yyyyMMddHHmmss") + RandomUtil.randomNumbers(6);
+        return SerialNoGenerator.next(SerialNoGenerator.AFTER_SALE_PREFIX);
     }
 }

@@ -1,5 +1,6 @@
 package com.koala.common.auth;
 
+import com.koala.common.constant.RedisKeys;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -11,8 +12,6 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class TokenBlacklist {
 
-    private static final String KEY_PREFIX = "auth:blacklist:";
-
     private final StringRedisTemplate redis;
 
     public TokenBlacklist(StringRedisTemplate redis) {
@@ -23,13 +22,13 @@ public class TokenBlacklist {
         if (jti == null || ttlSeconds <= 0) {
             return;
         }
-        redis.opsForValue().set(KEY_PREFIX + jti, "1", ttlSeconds, TimeUnit.SECONDS);
+        redis.opsForValue().set(RedisKeys.AUTH_BLACKLIST + jti, "1", ttlSeconds, TimeUnit.SECONDS);
     }
 
     public boolean isRevoked(String jti) {
         if (jti == null) {
             return false;
         }
-        return Boolean.TRUE.equals(redis.hasKey(KEY_PREFIX + jti));
+        return Boolean.TRUE.equals(redis.hasKey(RedisKeys.AUTH_BLACKLIST + jti));
     }
 }

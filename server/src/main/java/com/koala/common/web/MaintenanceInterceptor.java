@@ -1,6 +1,7 @@
 package com.koala.common.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.koala.common.constant.ConfigKeys;
 import com.koala.common.result.ErrorCode;
 import com.koala.common.result.Result;
 import com.koala.service.ConfigService;
@@ -33,7 +34,7 @@ public class MaintenanceInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
-        if (configService.getInt("system", "maintenance_mode", 0) != 1) {
+        if (configService.getInt(ConfigKeys.System.GROUP, ConfigKeys.System.MAINTENANCE_MODE, 0) != 1) {
             return true;
         }
         if (!"POST".equalsIgnoreCase(request.getMethod())) {
@@ -44,7 +45,7 @@ public class MaintenanceInterceptor implements HandlerInterceptor {
         if (path.startsWith("/admin/") || "/order/pay-notify".equals(path)) {
             return true;
         }
-        String notice = configService.get("system", "maintenance_notice", DEFAULT_NOTICE);
+        String notice = configService.get(ConfigKeys.System.GROUP, ConfigKeys.System.MAINTENANCE_NOTICE, DEFAULT_NOTICE);
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
